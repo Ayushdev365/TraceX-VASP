@@ -84,6 +84,9 @@ class Settings(BaseSettings):
     min_attribution_score: int = Field(default=35, ge=0, le=100)
     stale_label_days: int = Field(default=30, ge=1)
     allow_demo_labels: bool = False
+    # Serve synthetic chain data instead of calling a provider. Explicit opt-in only:
+    # there is no silent fallback, and every result is labelled mock_demo end to end.
+    use_mock_chain_data: bool = False
 
     # ─── caching & rate limiting ────────────────────────────────────────────
     chain_cache_ttl_s: int = Field(default=900, ge=0)
@@ -118,6 +121,8 @@ class Settings(BaseSettings):
                 raise ValueError("production requires " + ", ".join(missing) + " to be set")
             if self.allow_demo_labels:
                 raise ValueError("ALLOW_DEMO_LABELS must be false in production")
+            if self.use_mock_chain_data:
+                raise ValueError("USE_MOCK_CHAIN_DATA must be false in production")
         return self
 
     @property

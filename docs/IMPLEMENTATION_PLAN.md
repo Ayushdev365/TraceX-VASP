@@ -271,15 +271,56 @@ responses. The adapter has never made a real Etherscan call, so EXP-01 — compa
 output to the reference explorer for 20+ wallets — cannot run until `ETHERSCAN_API_KEY`
 exists. The response shapes are implemented from Etherscan's documented V2 contract.
 
-### Phase 4 — Tron adapter
-Build: `tron.py` over TronGrid/TronScan (reusing `http.py` unchanged) — TRX transfers, TRC-20 transfers (USDT priority per
-DPRD §11), Tron's `sun` decimals, base58check ↔ hex(41) handling, its own pagination and
-fingerprint cursors; register in `registry.py`; `mock.py` MockAdapter for both chains with
-labelled demo fixtures.
-Gate: same EXP-01 fixture test for Tron; `NormalizedTx` from ETH and Tron are
-schema-identical (a parametrised test asserts field-by-field equality of shape and types —
-DPRD §10 "cross-chain schema consistency test"); MockAdapter always reports
-`provenance=mock_demo`.
+### Phase 4 — Tron adapter + MockAdapter · **DONE (2026-09-18)**
+Built: `tron.py` over TronGrid v1 (native TRX via the nested `raw_data.contract` shape, TRC-20
+via the flattened shape, fingerprint paging, hex↔base58 handling); `mock.py` with three
+scripted scenarios; registry extended to both MVP chains with per-chain key requirements;
+`USE_MOCK_CHAIN_DATA` setting; `http.py` gained `secret_headers` because TronGrid passes its
+key as a header rather than a query parameter.
+
+Gate result: `make check` green — ruff clean, `mypy --strict` clean on 59 files, **177 tests
+pass** (143 → 177). Verified:
+- **cross-chain schema consistency (DPRD §10):** a parametrised test asserts Ethereum and
+  Tron `NormalizedTx` objects have identical fields and types, `Decimal` amounts, string raw
+  amounts and UTC-aware timestamps — if they diverged, every layer above would need to know
+  which chain it was looking at and the adapter abstraction would have failed;
+- hex `41…` addresses are canonicalised to base58 `T…`, so a provider that returns the other
+  form cannot cause a silent label miss;
+- millisecond timestamps are read as milliseconds (seconds would place every transaction in
+  1970 and destroy the temporal scoring factor);
+- non-transfer contracts (votes, resource freezing, value-less calls) are skipped;
+  `contractRet != "SUCCESS"` marks a transaction failed;
+- the TronGrid key travels as a header and never appears in the URL, where it could be
+  logged or cached;
+- a fingerprint becomes a cursor **only** when a next-page link is present — TronGrid returns
+  one on the final page too, which would page forever;
+- amounts round-trip exactly: `int(amount × 10^decimals) == amount_raw`.
+
+MockAdapter scenarios, each deterministic across runs (DPRD §48 task 31 repeatability):
+`clean` → two intermediates → a demo exchange deposit (3 hops); `mixer` → a demo mixer →
+intermediate → demo custody deposit, so Phase 9 has something to fire on; `dead_end` → three
+unlabelled hops, exercising the "No reliable VASP attribution found" path. Terminals are the
+demo fixture's own addresses, so a trace lands on a label that exists after `make seed-demo`.
+
+A real bug was found and fixed in `mock.py`: `derive_address` returns the *display* form
+(EIP-55 checksummed on Ethereum) while every lookup uses the canonical form, so the adjacency
+map was keyed by checksummed addresses and no Ethereum hop ever matched. Same root cause as
+the Phase 2 `0X`-prefix bug — the DPRD §17 format-mismatch failure mode, which is proving to
+be the most recurrent defect class in this codebase. Both are now guarded by tests.
+
+Deviations, all deliberate:
+- **`/meta/chains` now reports `degraded`** for a chain whose adapter exists but has no key.
+  Previously it claimed `supported` with `adapter_provenance: mock_demo`, which implied
+  synthetic data was available by default. It is not — mock mode is opt-in, so the honest
+  answer is that no trace can run, and the coverage notice names the missing setting.
+- **No silent mock fallback.** `ProviderNotConfigured` names both the key to set *and*
+  `USE_MOCK_CHAIN_DATA` as the offline alternative, rather than dead-ending.
+- **`roadmap.py` was not created.** The registry's `ROADMAP_NOTES` covers it in one place;
+  a file of stub classes that only raise would be indirection without benefit.
+
+**Untested against the live API (Q3 unanswered).** As with Ethereum, every Tron test runs
+against recorded responses; the adapter has never made a real TronGrid call, so EXP-01 cannot
+run until `TRONGRID_API_KEY` exists.
 
 ### Phase 5 — Normalization + observation store
 Build: persist `wallets`, `transactions`, `token_transfers` with the documented unique keys and

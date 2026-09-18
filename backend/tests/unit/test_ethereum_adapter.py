@@ -310,9 +310,7 @@ class TestRegistry:
             get_adapter(Chain.ETHEREUM)
         assert exc.value.details["required_setting"] == "ETHERSCAN_API_KEY"
 
-    @pytest.mark.parametrize(
-        "chain", [Chain.TRON, Chain.BITCOIN, Chain.BNB, Chain.SOLANA, Chain.POLYGON]
-    )
+    @pytest.mark.parametrize("chain", [Chain.BITCOIN, Chain.BNB, Chain.SOLANA, Chain.POLYGON])
     def test_unimplemented_chains_fail_clearly(self, chain: Chain) -> None:
         with pytest.raises(ChainNotSupported) as exc:
             get_adapter(chain)

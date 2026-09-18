@@ -197,11 +197,14 @@ class ProviderClient:
         params: dict[str, Any],
         *,
         secret_params: dict[str, Any] | None = None,
+        secret_headers: dict[str, str] | None = None,
         force_refresh: bool = False,
     ) -> ProviderResponse:
         """GET ``endpoint``, returning a parsed body.
 
-        ``params`` are cacheable and loggable; ``secret_params`` are sent but never stored.
+        ``params`` are cacheable and loggable. ``secret_params`` and ``secret_headers`` are
+        sent but never cached or logged — providers differ on where the key goes (Etherscan
+        uses a query parameter, TronGrid a header), and both must stay out of storage.
         """
         key = cache_key(self.provider, endpoint, params)
 
@@ -228,7 +231,7 @@ class ProviderClient:
             calls += 1
             try:
                 async with httpx.AsyncClient(timeout=timeout) as client:
-                    response = await client.get(url, params=sent)
+                    response = await client.get(url, params=sent, headers=secret_headers)
             except (httpx.TimeoutException, httpx.TransportError) as exc:
                 last_error = exc
                 logger.warning(

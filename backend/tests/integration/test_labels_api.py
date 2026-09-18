@@ -115,20 +115,30 @@ class TestChainsEndpoint:
         body = client.get(f"{api_prefix}/meta/chains").json()
         by_chain = {entry["chain"]: entry for entry in body["chains"]}
 
-        assert by_chain["ethereum"]["status"] == "supported"
-        assert by_chain["tron"]["status"] == "supported"
+        # Both MVP chains have adapters, but no provider key is configured in tests, so
+        # neither can actually be traced — reported as "degraded", not "supported".
+        assert by_chain["ethereum"]["status"] == "degraded"
+        assert by_chain["tron"]["status"] == "degraded"
         for roadmap in ("bitcoin", "bnb", "solana", "polygon"):
             assert by_chain[roadmap]["status"] == "roadmap"
             # Roadmap chains report no coverage rather than a misleading zero.
             assert by_chain[roadmap]["coverage"] is None
 
-    def test_without_a_provider_key_the_adapter_declares_mock_provenance(
+    def test_without_a_provider_key_no_provenance_is_claimed(
         self, client: TestClient, api_prefix: str
     ) -> None:
-        """Never imply a live pull when no key is configured."""
+        """Never imply a live pull — and never imply mock data is available by default.
+
+        Synthetic data requires USE_MOCK_CHAIN_DATA=true, so with nothing configured the
+        honest answer is that no trace can run at all.
+        """
         body = client.get(f"{api_prefix}/meta/chains").json()
         by_chain = {entry["chain"]: entry for entry in body["chains"]}
-        assert by_chain["ethereum"]["adapter_provenance"] == "mock_demo"
+
+        assert by_chain["ethereum"]["adapter_provenance"] is None
+        notice = by_chain["ethereum"]["coverage"]["coverage_notice"]
+        assert "ETHERSCAN_API_KEY is not set" in notice
+        assert "no trace can run" in notice
 
     def test_an_empty_dataset_reports_no_coverage_honestly(
         self, client: TestClient, api_prefix: str

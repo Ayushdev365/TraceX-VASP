@@ -12,12 +12,13 @@ from typing import Any
 
 from fastapi import APIRouter
 
+from app.blockchain.registry import IMPLEMENTED_CHAINS, REQUIRED_SETTING, adapter_provenance
 from app.config import get_settings
 from app.database.models import LabelDatasetVersion
 from app.database.repositories import labels as labels_repo
 from app.database.repositories.labels import ChainCoverageStats
 from app.deps import DbSession, RequireApiKey
-from app.schemas.common import MVP_CHAINS, Chain, ChainStatus, CoverageLevel
+from app.schemas.common import Chain, ChainStatus, CoverageLevel
 from app.schemas.label import (
     ChainCoverage,
     ChainInfo,
@@ -65,6 +66,7 @@ def build_coverage(
     *,
     version: LabelDatasetVersion | None,
     stale_days: int,
+    missing_setting: str | None = None,
 ) -> ChainCoverage:
     """Turn raw label counts into an honest coverage statement."""
     address_count = stats.vasp_address_count if stats else 0
@@ -82,6 +84,13 @@ def build_coverage(
     is_stale = age is not None and age > stale_days
     if is_stale:
         notice += STALE_NOTICE_SUFFIX
+    if missing_setting:
+        # Label coverage is irrelevant if no transaction data can be read at all; say the
+        # blocking thing first.
+        notice = (
+            f"No data provider is configured for this chain ({missing_setting} is not set), "
+            f"so no trace can run. " + notice
+        )
 
     return ChainCoverage(
         vasp_count=stats.vasp_count if stats else 0,
@@ -105,17 +114,11 @@ async def list_chains(session: DbSession) -> ChainsResponse:
     coverage_by_chain = await labels_repo.chain_coverage(session)
     version = await labels_repo.latest_dataset_version(session)
 
-    provider_keys = {
-        Chain.ETHEREUM: settings.etherscan_api_key,
-        Chain.TRON: settings.trongrid_api_key,
-    }
-
     chains: list[ChainInfo] = []
     for chain in Chain:
         display_name, native_asset, providers = CHAIN_DISPLAY[chain]
-        is_mvp = chain in MVP_CHAINS
 
-        if not is_mvp:
+        if chain not in IMPLEMENTED_CHAINS:
             # Roadmap chains report no coverage rather than a zero that looks like a gap in
             # an otherwise supported chain (DPRD sec.11 roadmap).
             chains.append(
@@ -131,22 +134,25 @@ async def list_chains(session: DbSession) -> ChainsResponse:
             )
             continue
 
-        has_key = bool(provider_keys.get(chain))
+        # The registry is the single source of truth for whether a trace can run, so this
+        # cannot drift from what actually happens when the investigator presses Analyze.
+        provenance = adapter_provenance(chain)
         chains.append(
             ChainInfo(
                 chain=chain,
                 display_name=display_name,
                 native_asset=native_asset,
-                status=ChainStatus.SUPPORTED,
-                # Without a key the adapter can only serve clearly-labelled demo data; say
-                # so here so the UI never implies a live pull (brief: never present mock
-                # data as real blockchain data).
-                adapter_provenance="live_api" if has_key else "mock_demo",
+                # "degraded" when the adapter exists but has no credentials: the chain is
+                # selectable in principle but no trace would succeed, and saying "supported"
+                # would be a false promise.
+                status=ChainStatus.SUPPORTED if provenance else ChainStatus.DEGRADED,
+                adapter_provenance=provenance.value if provenance else None,
                 providers=list(providers),
                 coverage=build_coverage(
                     coverage_by_chain.get(chain.value),
                     version=version,
                     stale_days=settings.stale_label_days,
+                    missing_setting=None if provenance else REQUIRED_SETTING[chain],
                 ),
             )
         )

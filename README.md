@@ -32,7 +32,7 @@ This matters more than any feature, and it is enforced in code rather than state
 
 ## Status
 
-Phase 3 of 16 complete — Ethereum data adapter. See
+Phase 4 of 16 complete — both MVP chain adapters. See
 [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the full phase plan.
 
 | Phase | Scope | Status |
@@ -41,8 +41,8 @@ Phase 3 of 16 complete — Ethereum data adapter. See
 | 1 | Backend + frontend shells, config, logging, error envelope, health | Done |
 | 2 | PostgreSQL schema, VASP label import with provenance enforcement | Done |
 | 3 | Ethereum adapter, provider HTTP layer, address validation | Done |
-| 4 | Tron adapter | Next |
-| 5 | Transaction normalization + observation store | Planned |
+| 4 | Tron adapter + offline MockAdapter | Done |
+| 5 | Transaction normalization + observation store | Next |
 | 6–9 | Graph traversal, VASP matching, attribution scoring, risk engine | Planned |
 | 10–13 | Investigator workflow, interactive graph, reports, mock SAHYOG | Planned |
 | 14–16 | ML experiment, testing/security, deployment | Planned |
@@ -124,8 +124,9 @@ reports what is missing.
 | Variable | Purpose |
 |---|---|
 | `DATABASE_URL` | Supabase/PostgreSQL connection string (Phase 2) |
-| `ETHERSCAN_API_KEY` | Ethereum transaction data (Phase 3) |
-| `TRONGRID_API_KEY` | Tron transaction data (Phase 4) |
+| `ETHERSCAN_API_KEY` | Ethereum transaction data |
+| `TRONGRID_API_KEY` | Tron transaction data |
+| `USE_MOCK_CHAIN_DATA` | Serve labelled synthetic chain data offline; refused in production |
 | `DEMO_API_KEY` | Bearer key the frontend proxy sends to the backend |
 | `DEFAULT_HOP_DEPTH` / `MAX_HOP_DEPTH` | Traversal depth (3 / 6) |
 | `MIN_ATTRIBUTION_SCORE` | Below this, no attribution is returned (35) |
@@ -137,12 +138,14 @@ server-side. No variable holding a secret is prefixed `NEXT_PUBLIC_`, and
 `app/core/logging.py` redacts configured secret values and key-bearing query parameters from
 every log line.
 
-Without `ETHERSCAN_API_KEY` the Ethereum adapter refuses to run and says exactly why
+Without a chain's API key its adapter refuses to run and says exactly why
 (`PROVIDER_NOT_CONFIGURED`, naming the missing setting) rather than silently substituting
-demo data — "no key" and "provider down" need different fixes. A clearly-labelled mock
-provider arrives in Phase 4; when it does, its results carry `data_provenance: mock_demo`
-end to end and are banner-flagged in the UI and on the PDF. Mock data is never presented as
-real blockchain data.
+demo data — "no key" and "provider down" need different fixes.
+
+To work offline, set `USE_MOCK_CHAIN_DATA=true`. That is an **explicit opt-in**: there is no
+silent fallback. Everything it returns carries `data_provenance: mock_demo` end to end and is
+banner-flagged in the UI and watermarked on the PDF. Mock data is never presented as real
+blockchain data, and the setting is refused when `APP_ENV=production`.
 
 Every provider read is cached in `api_response_cache` with the API key stripped. A cache hit
 reports `data_provenance: cached`, so a demo served from a warm cache is never described as a
