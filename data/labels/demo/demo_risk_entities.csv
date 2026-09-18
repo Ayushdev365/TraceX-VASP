@@ -1,0 +1,7 @@
+chain,address,entity_kind,entity_name,severity,verification_status,notes
+ethereum,0x5dce5C76f08c2943843b5b820Beb8d113392C7a2,mixer,DEMO — Obscura Mixer,high,unverified,Synthetic demo fixture — not a real address and not a real service provider.
+ethereum,0x6a02B11915c0366aB9be55E97B0517B3862aeA69,mixer,DEMO — Obscura Mixer,high,unverified,Synthetic demo fixture — not a real address and not a real service provider.
+tron,TXvVAmwXvg2s6FaJb6eMV6YiQqbLLQxiMp,mixer,DEMO — Obscura Mixer,high,unverified,Synthetic demo fixture — not a real address and not a real service provider.
+ethereum,0x300b3fdE1c7991b099f87c771DfA7BA03Ad20fC5,bridge,DEMO — Causeway Bridge,medium,unverified,Synthetic demo fixture — not a real address and not a real service provider.
+tron,TN4MMKFscreQpzddJJeBxBiUzB6sHFP35j,bridge,DEMO — Causeway Bridge,medium,unverified,Synthetic demo fixture — not a real address and not a real service provider.
+ethereum,0x872016428D9382132F0b4d5e5a98728d79669bF2,gambling,DEMO — Rollhouse Casino,low,unverified,Synthetic demo fixture — not a real address and not a real service provider.

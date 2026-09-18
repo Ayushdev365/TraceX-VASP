@@ -32,21 +32,27 @@ This matters more than any feature, and it is enforced in code rather than state
 
 ## Status
 
-Phase 1 of 16 complete — project scaffolding. See
+Phase 2 of 16 complete — schema and labelled-dataset pipeline. See
 [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the full phase plan.
 
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Architecture, data model, API contract, plan | Done |
 | 1 | Backend + frontend shells, config, logging, error envelope, health | Done |
-| 2 | PostgreSQL schema, VASP label import with provenance enforcement | Next |
-| 3–5 | Ethereum adapter, Tron adapter, transaction normalization | Planned |
+| 2 | PostgreSQL schema, VASP label import with provenance enforcement | Done |
+| 3 | Ethereum adapter | Next |
+| 4–5 | Tron adapter, transaction normalization | Planned |
 | 6–9 | Graph traversal, VASP matching, attribution scoring, risk engine | Planned |
 | 10–13 | Investigator workflow, interactive graph, reports, mock SAHYOG | Planned |
 | 14–16 | ML experiment, testing/security, deployment | Planned |
 
 Tracing is not available yet: the intake form is present but submission is disabled, because
 the traversal engine lands in Phase 6. Nothing in the UI is wired to placeholder data.
+
+**Label coverage today is the synthetic demo fixture only** — fictional VASPs with
+deterministically-derived addresses, at the lowest reliability tier, opt-in via
+`ALLOW_DEMO_LABELS` and refused in production. Real label sources are an open decision; see
+[data/labels/PROVENANCE.md](data/labels/PROVENANCE.md).
 
 ---
 
@@ -85,12 +91,27 @@ disguised as healthy.
 ### Development commands
 
 ```bash
-make check        # lint + typecheck + test — run before every commit
-make lint         # ruff (backend) + eslint (frontend)
-make typecheck    # mypy --strict (backend) + tsc --noEmit (frontend)
-make test         # pytest
-make format       # ruff auto-fix
+make check          # lint + typecheck + test — run before every commit
+make lint           # ruff (backend) + eslint (frontend)
+make typecheck      # mypy --strict (backend) + tsc --noEmit (frontend)
+make test           # pytest
+make format         # ruff auto-fix
 ```
+
+### Database and labels
+
+```bash
+make migrate        # apply migrations (Supabase, or the local SQLite fallback)
+make migration m="add x"   # generate a migration after changing a model
+make seed-check     # validate label sources + integrity scan, writing nothing
+make seed           # import real label sources (skips demo_unverified)
+make seed-demo      # import including the synthetic demo fixture
+make demo-fixtures  # regenerate the synthetic demo label files
+```
+
+`make seed-check` is worth running before any import: it validates every row, runs the
+duplicate/conflict/format scan, and rolls back. An import either applies completely or writes
+nothing.
 
 ---
 

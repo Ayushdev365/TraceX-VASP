@@ -1,0 +1,11 @@
+vasp_slug,vasp_name,vasp_kind,jurisdiction,chain,address,address_type,verification_status,notes
+demo-meridian-exchange,DEMO — Meridian Digital Exchange,exchange,SG,ethereum,0xb9E5bF76d586E639412b4b163fD6F5a80ceF21ad,hot_wallet,unverified,Synthetic demo fixture — not a real address and not a real service provider.
+demo-meridian-exchange,DEMO — Meridian Digital Exchange,exchange,SG,ethereum,0x9067ee407de9713bb87cDF2751c526333783f712,deposit,unverified,Synthetic demo fixture — not a real address and not a real service provider.
+demo-meridian-exchange,DEMO — Meridian Digital Exchange,exchange,SG,ethereum,0xFe696015a704A18920b2F2d834d57E69691c8afB,deposit,unverified,Synthetic demo fixture — not a real address and not a real service provider.
+demo-meridian-exchange,DEMO — Meridian Digital Exchange,exchange,SG,tron,TYFSU5kZigSZHNWRoJbsrgxuLUXUcPm2vX,hot_wallet,unverified,Synthetic demo fixture — not a real address and not a real service provider.
+demo-meridian-exchange,DEMO — Meridian Digital Exchange,exchange,SG,tron,TRNvYt4h8kiz8w6skHCnbq4Hj6eewUuudr,deposit,unverified,Synthetic demo fixture — not a real address and not a real service provider.
+demo-kavach-custody,DEMO — Kavach Custody Services,custodial_wallet,IN,ethereum,0x6dB15723A2dbA1a988Fe364cf2D49Ed18e955b66,hot_wallet,unverified,Synthetic demo fixture — not a real address and not a real service provider.
+demo-kavach-custody,DEMO — Kavach Custody Services,custodial_wallet,IN,tron,TQwaVy66PwjXYRfXvdAPwBcczXtW8vJvq1,deposit,unverified,Synthetic demo fixture — not a real address and not a real service provider.
+demo-kavach-custody,DEMO — Kavach Custody Services,custodial_wallet,IN,tron,TYMocjpXB1uy6tWbMCehF5HzATYEyMmLCQ,deposit,unverified,Synthetic demo fixture — not a real address and not a real service provider.
+demo-northwind-otc,DEMO — Northwind OTC Desk,otc_desk,AE,ethereum,0x634aCe78097eAca2eE81CA4A2F715dC71669b294,hot_wallet,unverified,Synthetic demo fixture — not a real address and not a real service provider.
+demo-northwind-otc,DEMO — Northwind OTC Desk,otc_desk,AE,tron,TNomn2zhagPUZqs5jnYtVDY35Fyrxm7vy7,hot_wallet,unverified,Synthetic demo fixture — not a real address and not a real service provider.

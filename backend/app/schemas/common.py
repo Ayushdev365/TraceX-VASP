@@ -97,6 +97,99 @@ class ScoreBand(StrEnum):
     VERY_STRONG = "very_strong"
 
 
+class VaspKind(StrEnum):
+    EXCHANGE = "exchange"
+    CUSTODIAL_WALLET = "custodial_wallet"
+    PAYMENT_PROCESSOR = "payment_processor"
+    OTC_DESK = "otc_desk"
+    BROKER = "broker"
+
+
+class AddressType(StrEnum):
+    HOT_WALLET = "hot_wallet"
+    DEPOSIT = "deposit"
+    COLD_WALLET = "cold_wallet"
+    CONTRACT = "contract"
+
+
+class RiskEntityKind(StrEnum):
+    MIXER = "mixer"
+    BRIDGE = "bridge"
+    GAMBLING = "gambling"
+    DARKNET_MARKET = "darknet_market"
+    SANCTIONED = "sanctioned"
+    SCAM_REPORTED = "scam_reported"
+
+
+class TraceStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    PARTIAL = "partial"
+    FAILED = "failed"
+
+
+class ReviewDecision(StrEnum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    DEEPER_TRACE_REQUESTED = "deeper_trace_requested"
+
+
+class ReportFormat(StrEnum):
+    JSON = "json"
+    PDF = "pdf"
+
+
+class CaseStatus(StrEnum):
+    OPEN = "open"
+    UNDER_REVIEW = "under_review"
+    CLOSED = "closed"
+
+
+class UserRole(StrEnum):
+    INVESTIGATOR = "investigator"
+    ANALYST = "analyst"
+    ADMIN = "admin"
+
+
+class DisclosureMode(StrEnum):
+    """Only one value exists in the MVP: nothing can be submitted live (DPRD sec.29)."""
+
+    MOCK_DEMO = "mock_demo"
+
+
+class CoverageLevel(StrEnum):
+    """How much of a chain's label space the dataset covers. Never claims completeness."""
+
+    NONE = "none"
+    LIMITED = "limited"
+    PARTIAL = "partial"
+
+
+#: Label tiers that may, on their own, support a primary attribution. A match backed only by
+#: ``demo_unverified`` evidence is refused outright (DPRD sec.16; brief: never treat an
+#: unverified address as verified).
+ATTRIBUTABLE_TIERS: frozenset[LabelTier] = frozenset(
+    {
+        LabelTier.OFFICIAL_VASP_PUBLISHED,
+        LabelTier.SANCTIONS_LIST,
+        LabelTier.COMMUNITY_VERIFIED,
+        LabelTier.COMMUNITY_UNVERIFIED,
+    }
+)
+
+#: Default reliability weight per tier, used by the scorer (Phase 8) and as the importer's
+#: default when a source does not state its own reliability.
+TIER_RELIABILITY: dict[LabelTier, float] = {
+    LabelTier.OFFICIAL_VASP_PUBLISHED: 1.00,
+    LabelTier.SANCTIONS_LIST: 1.00,
+    LabelTier.COMMUNITY_VERIFIED: 0.75,
+    LabelTier.COMMUNITY_UNVERIFIED: 0.55,
+    LabelTier.DEMO_UNVERIFIED: 0.25,
+}
+
+
 class ApiModel(BaseModel):
     """Base for every response model: reject unknown fields, allow ORM attribute reads."""
 

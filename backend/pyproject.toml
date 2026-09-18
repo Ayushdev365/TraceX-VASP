@@ -23,11 +23,22 @@ select = [
     "RUF",
 ]
 ignore = [
-    "B008", # FastAPI Depends() in defaults is the documented idiom
+    "B008",   # FastAPI Depends() in defaults is the documented idiom
+    # Investigator-facing copy uses en/em dashes deliberately; these rules flag them as
+    # look-alike characters, which is not a risk in prose we control.
+    "RUF001",
+    "RUF002",
+    "RUF003",
 ]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["E501"]
+# Alembic writes these; reformatting generated DDL by hand invites transcription errors.
+"migrations/versions/*" = ["E501"]
+"migrations/env.py" = ["E402"]
 
 [tool.mypy]
 python_version = "3.11"

@@ -25,6 +25,7 @@ from app.config import LEAD_NOT_PROOF, SCORE_DISCLAIMER, get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
 from app.core.middleware import RequestContextMiddleware
+from app.database.session import dispose_engine
 
 DESCRIPTION = f"""
 Traces an unknown cryptocurrency wallet across a blockchain transaction graph, matches
@@ -53,6 +54,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if not settings.auth_enabled and settings.is_production:  # pragma: no cover - guarded in config
         raise RuntimeError("refusing to start in production without DEMO_API_KEY")
     yield
+    await dispose_engine()
     logger.info("shutdown")
 
 

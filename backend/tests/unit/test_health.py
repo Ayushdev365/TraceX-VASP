@@ -14,10 +14,18 @@ def test_health_reports_ok_and_dependency_detail(client: TestClient, api_prefix:
     assert body["engine_version"]
     assert body["time"].endswith("Z")
 
-    names = {dep["name"] for dep in body["dependencies"]}
-    assert names == {"database", "ethereum_provider", "tron_provider", "auth"}
-    # With no keys configured, each dependency must say so rather than claim health.
-    assert all(dep["status"] == "not_configured" for dep in body["dependencies"])
+    by_name = {dep["name"]: dep for dep in body["dependencies"]}
+    assert set(by_name) == {"database", "ethereum_provider", "tron_provider", "auth"}
+
+    # With no keys configured, each provider must say so rather than claim health.
+    for name in ("ethereum_provider", "tron_provider", "auth"):
+        assert by_name[name]["status"] == "not_configured"
+        assert by_name[name]["detail"]
+
+    # The database is probed for real. The SQLite fallback answers, so it reports ok — and
+    # its detail says it is a fallback rather than a configured database.
+    assert by_name["database"]["status"] == "ok"
+    assert "fallback" in by_name["database"]["detail"]
 
 
 def test_health_sets_request_id_header(client: TestClient, api_prefix: str) -> None:

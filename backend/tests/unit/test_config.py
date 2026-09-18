@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 import pytest
+
 from app.config import Settings, score_band
 from app.core.logging import JsonFormatter, RedactingFilter
 

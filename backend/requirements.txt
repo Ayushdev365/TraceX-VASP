@@ -6,8 +6,13 @@ pydantic-settings==2.7.0
 
 # database (Phase 2)
 SQLAlchemy==2.0.36
+greenlet==3.1.1              # required by SQLAlchemy's asyncio support
 alembic==1.14.0
 psycopg[binary]==3.2.3
+aiosqlite==0.20.0            # async dev fallback when DATABASE_URL is unset
+
+# crypto primitives (EIP-55 keccak256, Tron base58check)
+pycryptodome==3.21.0
 
 # blockchain adapters (Phase 3/4)
 httpx==0.28.1

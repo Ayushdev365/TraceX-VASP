@@ -1,20 +1,21 @@
 """v1 API router.
 
 Routers are registered here as each phase lands, keeping ``main.py`` free of domain
-imports. Phase 1 ships meta only; the endpoint inventory is in ``docs/API_CONTRACT.md``.
+imports. The endpoint inventory is in ``docs/API_CONTRACT.md``.
 """
 
 from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.v1 import meta
+from app.api.v1 import labels, meta, vasps
 
 api_router = APIRouter()
 api_router.include_router(meta.router)
+api_router.include_router(vasps.router)
+api_router.include_router(labels.router)
 
 # Registered in later phases:
-#   Phase 2  vasps, labels
 #   Phase 3  addresses
 #   Phase 6  traces
 #   Phase 10 cases, review

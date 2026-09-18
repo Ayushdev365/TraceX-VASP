@@ -13,28 +13,42 @@ from typing import Any
 from fastapi import APIRouter
 
 from app.config import Settings, get_settings
+from app.database.session import ping
 from app.schemas.common import DependencyHealth, HealthResponse
 
 router = APIRouter(tags=["meta"])
 
 
-def _dependencies(settings: Settings) -> list[DependencyHealth]:
-    """Snapshot of what is configured.
+async def _database_health(settings: Settings) -> DependencyHealth:
+    """Probe the database for real rather than reporting whether a URL is present.
 
-    Phase 1 reports configuration presence only. Live connectivity probes are added with
-    the database (Phase 2) and the chain adapters (Phase 3/4); until then claiming a
-    connection is healthy would be an unsupported claim.
+    A configured-but-unreachable Supabase instance and a healthy one are very different
+    situations on demo day, and only a query can tell them apart.
+    """
+    reachable = await ping()
+    if not settings.database_url:
+        return DependencyHealth(
+            name="database",
+            status="ok" if reachable else "unavailable",
+            detail=(
+                "DATABASE_URL is empty; using the local SQLite development fallback. "
+                "Set DATABASE_URL before processing any real case data."
+            ),
+        )
+    return DependencyHealth(
+        name="database",
+        status="ok" if reachable else "unavailable",
+        detail=None if reachable else "The configured database did not answer a test query.",
+    )
+
+
+def _dependencies(settings: Settings) -> list[DependencyHealth]:
+    """Configuration snapshot for the non-database dependencies.
+
+    Live connectivity probes for the chain providers arrive with their adapters in
+    Phase 3/4; until then, claiming a provider is healthy would be an unsupported claim.
     """
     return [
-        DependencyHealth(
-            name="database",
-            status="ok" if settings.database_url else "not_configured",
-            detail=(
-                None
-                if settings.database_url
-                else "DATABASE_URL is empty; persistence is unavailable until Phase 2 is set up."
-            ),
-        ),
         DependencyHealth(
             name="ethereum_provider",
             status="ok" if settings.etherscan_api_key else "not_configured",
@@ -72,11 +86,12 @@ def _dependencies(settings: Settings) -> list[DependencyHealth]:
 )
 async def health() -> HealthResponse:
     settings = get_settings()
-    dependencies = _dependencies(settings)
-    # "ok" means the service is serving; per-dependency gaps are reported individually so a
-    # partially configured instance is visible rather than silently degraded.
+    dependencies = [await _database_health(settings), *_dependencies(settings)]
+    # "degraded" only when something is broken, not merely unconfigured: an absent provider
+    # key is an honest gap, an unreachable database is a fault.
+    is_degraded = any(dep.status in {"unavailable", "degraded"} for dep in dependencies)
     return HealthResponse(
-        status="ok",
+        status="degraded" if is_degraded else "ok",
         engine_version=settings.engine_version,
         app_env=settings.app_env,
         time=datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
