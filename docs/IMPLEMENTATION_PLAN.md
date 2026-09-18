@@ -376,7 +376,7 @@ the expected path exactly; cycle test (A→B→C→A) terminates; a 5 000-counte
 not expanded and is flagged; budget exhaustion yields `truncated=true` with a reason rather than
 an exception; deterministic output — same input twice gives identical node/edge sets.
 
-### Phase 7 — VASP matching
+### Phase 7 — VASP matching · **DONE (2026-09-18)**
 Build: `matcher.py` (case-insensitive canonical lookup, batched to one query per hop),
 `candidates.py` entity aggregation, terminal-at-VASP rule, conflicting-label detection, label
 staleness computation.
@@ -384,7 +384,7 @@ Gate: EXP-03 scaffold — precision/recall computed against a held-out validatio
 size we honestly have); a label differing only in case still matches; two conflicting sources for
 one address produce a `conflicting_label` indicator instead of a silent pick.
 
-### Phase 8 — Attribution scoring
+### Phase 8 — Attribution scoring · **DONE (2026-09-18)**
 Build: `attribution/config.py` (weights, tier weights, thresholds, `SCORING_CONFIG_VERSION`),
 `scoring.py`, `explain.py`; ranked `attributions` rows; the refusal rule; score-band labelling;
 `why_summary` sentence generation.
