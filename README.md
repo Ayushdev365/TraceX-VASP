@@ -32,7 +32,7 @@ This matters more than any feature, and it is enforced in code rather than state
 
 ## Status
 
-Phase 4 of 16 complete — both MVP chain adapters. See
+Phase 5 of 16 complete — data layer finished. See
 [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the full phase plan.
 
 | Phase | Scope | Status |
@@ -42,8 +42,9 @@ Phase 4 of 16 complete — both MVP chain adapters. See
 | 2 | PostgreSQL schema, VASP label import with provenance enforcement | Done |
 | 3 | Ethereum adapter, provider HTTP layer, address validation | Done |
 | 4 | Tron adapter + offline MockAdapter | Done |
-| 5 | Transaction normalization + observation store | Next |
-| 6–9 | Graph traversal, VASP matching, attribution scoring, risk engine | Planned |
+| 5 | Transaction normalization + observation store | Done |
+| 6 | NetworkX graph traversal engine | Next |
+| 7–9 | VASP matching, attribution scoring, risk engine | Planned |
 | 10–13 | Investigator workflow, interactive graph, reports, mock SAHYOG | Planned |
 | 14–16 | ML experiment, testing/security, deployment | Planned |
 

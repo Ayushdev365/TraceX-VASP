@@ -12,6 +12,7 @@ behaviour survives into the migration file.
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any
 
 import sqlalchemy as sa
@@ -47,9 +48,70 @@ class JSONType(TypeDecorator[Any]):
         return dialect.type_descriptor(sa.JSON())
 
 
-def Amount() -> sa.Numeric[Any]:
+class ExactDecimal(TypeDecorator[Decimal]):
+    """Exact decimal storage on both dialects.
+
+    PostgreSQL ``NUMERIC`` is exact. SQLite has no decimal type: SQLAlchemy's ``Numeric``
+    routes through a C double there, so ``1234.567890123456789012`` reads back as
+    ``1234.567890123456891160`` — silently wrong in the eighteenth decimal place.
+
+    That is not tolerable for a system whose output is meant to be evidentiary: a report has
+    to show the amount that actually moved. On SQLite the value is therefore stored as text
+    and parsed back to ``Decimal``, which is exact. The dev fallback then behaves like
+    production instead of being quietly less trustworthy.
+    """
+
+    impl = sa.Numeric
+    cache_ok = True
+
+    def __init__(
+        self,
+        precision: int = AMOUNT_PRECISION,
+        scale: int = AMOUNT_SCALE,
+        **kwargs: Any,
+    ) -> None:
+        # Alembic autogenerate renders this as ``ExactDecimal(precision=38, scale=18)``, so
+        # the signature has to accept what it emits.
+        kwargs.pop("asdecimal", None)
+        super().__init__(precision, scale, asdecimal=True, **kwargs)
+
+    def load_dialect_impl(self, dialect: Dialect) -> TypeEngine[Any]:
+        if dialect.name == "sqlite":
+            return dialect.type_descriptor(sa.String(AMOUNT_RAW_LEN))
+        return dialect.type_descriptor(sa.Numeric(AMOUNT_PRECISION, AMOUNT_SCALE, asdecimal=True))
+
+    def process_bind_param(self, value: Decimal | None, dialect: Dialect) -> Any:
+        if value is None:
+            return None
+        if dialect.name == "sqlite":
+            return format(value, "f")  # plain notation, never scientific
+        return value
+
+    def process_result_value(self, value: Any, dialect: Dialect) -> Decimal | None:
+        if value is None:
+            return None
+        return value if isinstance(value, Decimal) else Decimal(str(value))
+
+
+def Amount() -> ExactDecimal:
     """Exact decimal amount column."""
-    return sa.Numeric(AMOUNT_PRECISION, AMOUNT_SCALE, asdecimal=True)
+    return ExactDecimal()
+
+
+def format_amount(value: Decimal | None) -> str | None:
+    """Render an amount for the API, a report or a PDF.
+
+    Always plain notation: ``Decimal("0.000000000000000001")`` reprs as ``1E-18``, which
+    is correct but unreadable on an evidence table and easy to misread as a different
+    magnitude. Trailing zeros are trimmed so ``1.5`` does not print as
+    ``1.500000000000000000``.
+    """
+    if value is None:
+        return None
+    text = format(value, "f")
+    if "." in text:
+        text = text.rstrip("0").rstrip(".")
+    return text or "0"
 
 
 def Timestamp() -> sa.DateTime:

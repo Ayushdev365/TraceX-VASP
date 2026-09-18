@@ -1,8 +1,8 @@
 """initial schema
 
-Revision ID: d7e3f699d889
+Revision ID: 39a18b6b0f53
 Revises:
-Create Date: 2026-09-18 11:18:02.079123
+Create Date: 2026-09-18 12:46:27.304855
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from alembic import op
 
 import app.database.types
 
-revision: str = "d7e3f699d889"
+revision: str = "39a18b6b0f53"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -232,11 +232,13 @@ def upgrade() -> None:
         sa.Column("to_address", sa.String(length=128), nullable=False),
         sa.Column("asset_symbol", sa.String(length=32), nullable=False),
         sa.Column("asset_contract", sa.String(length=128), nullable=False),
-        sa.Column("amount", sa.Numeric(precision=38, scale=18), nullable=False),
+        sa.Column(
+            "amount", app.database.types.ExactDecimal(precision=38, scale=18), nullable=False
+        ),
         sa.Column("amount_raw", sa.String(length=80), nullable=False),
         sa.Column("decimals", sa.SmallInteger(), nullable=False),
         sa.Column("status", sa.String(length=16), nullable=False),
-        sa.Column("fee", sa.Numeric(precision=38, scale=18), nullable=True),
+        sa.Column("fee", app.database.types.ExactDecimal(precision=38, scale=18), nullable=True),
         sa.Column("provenance", sa.String(length=16), nullable=False),
         sa.Column("raw_ref", sa.Uuid(), nullable=True),
         sa.Column(
@@ -279,12 +281,14 @@ def upgrade() -> None:
         sa.Column("from_address", sa.String(length=128), nullable=False),
         sa.Column("to_address", sa.String(length=128), nullable=False),
         sa.Column("asset_symbol", sa.String(length=32), nullable=False),
-        sa.Column("amount", sa.Numeric(precision=38, scale=18), nullable=False),
+        sa.Column(
+            "amount", app.database.types.ExactDecimal(precision=38, scale=18), nullable=False
+        ),
         sa.Column("amount_raw", sa.String(length=80), nullable=False),
         sa.Column("decimals", sa.SmallInteger(), nullable=False),
         sa.Column("kind", sa.String(length=16), nullable=False),
         sa.Column("status", sa.String(length=16), nullable=False),
-        sa.Column("fee", sa.Numeric(precision=38, scale=18), nullable=True),
+        sa.Column("fee", app.database.types.ExactDecimal(precision=38, scale=18), nullable=True),
         sa.Column("provenance", sa.String(length=16), nullable=False),
         sa.Column("raw_ref", sa.Uuid(), nullable=True),
         sa.Column(
@@ -542,7 +546,11 @@ def upgrade() -> None:
         sa.Column("min_hop_distance", sa.SmallInteger(), nullable=False),
         sa.Column("matched_address_ids", app.database.types.JSONType(), nullable=False),
         sa.Column("interaction_tx_count", sa.Integer(), nullable=False),
-        sa.Column("interaction_value", sa.Numeric(precision=38, scale=18), nullable=True),
+        sa.Column(
+            "interaction_value",
+            app.database.types.ExactDecimal(precision=38, scale=18),
+            nullable=True,
+        ),
         sa.Column("value_share", sa.Numeric(precision=9, scale=8), nullable=True),
         sa.Column("score_breakdown", app.database.types.JSONType(), nullable=False),
         sa.Column("evidence", app.database.types.JSONType(), nullable=False),
@@ -612,8 +620,12 @@ def upgrade() -> None:
         sa.Column("in_degree", sa.Integer(), nullable=True),
         sa.Column("out_degree", sa.Integer(), nullable=True),
         sa.Column("counterparty_count", sa.Integer(), nullable=True),
-        sa.Column("value_in", sa.Numeric(precision=38, scale=18), nullable=True),
-        sa.Column("value_out", sa.Numeric(precision=38, scale=18), nullable=True),
+        sa.Column(
+            "value_in", app.database.types.ExactDecimal(precision=38, scale=18), nullable=True
+        ),
+        sa.Column(
+            "value_out", app.database.types.ExactDecimal(precision=38, scale=18), nullable=True
+        ),
         sa.Column("expanded", sa.Boolean(), nullable=False),
         sa.Column("not_expanded_reason", sa.String(length=64), nullable=True),
         sa.Column("attrs", app.database.types.JSONType(), nullable=True),
@@ -694,7 +706,9 @@ def upgrade() -> None:
         sa.Column("direction", sa.String(length=8), nullable=False),
         sa.Column("asset_symbol", sa.String(length=32), nullable=False),
         sa.Column("asset_contract", sa.String(length=128), nullable=True),
-        sa.Column("amount", sa.Numeric(precision=38, scale=18), nullable=False),
+        sa.Column(
+            "amount", app.database.types.ExactDecimal(precision=38, scale=18), nullable=False
+        ),
         sa.Column("block_timestamp", sa.DateTime(timezone=True), nullable=False),
         sa.Column("hop_index", sa.SmallInteger(), nullable=False),
         sa.Column("value_share", sa.Numeric(precision=9, scale=8), nullable=True),

@@ -322,12 +322,50 @@ Deviations, all deliberate:
 against recorded responses; the adapter has never made a real TronGrid call, so EXP-01 cannot
 run until `TRONGRID_API_KEY` exists.
 
-### Phase 5 — Normalization + observation store
-Build: persist `wallets`, `transactions`, `token_transfers` with the documented unique keys and
-upserts; decimal handling end-to-end (`Decimal`, never `float`); `trace_snapshot_refs` pinning;
-cache TTL + `force_refresh`.
-Gate: re-ingesting the same page inserts zero duplicate rows; amounts round-trip exactly
-(`amount_raw` → `amount` → `amount_raw`); a pinned snapshot survives cache eviction.
+### Phase 5 — Normalization + observation store · **DONE (2026-09-18)**
+Built: `repositories/observations.py` — idempotent persistence of `wallets`, `transactions`
+and `token_transfers`, plus `pin_snapshots`, `snapshot_ids_for_trace` and
+`evict_expired_cache`; `ExactDecimal` column type and `format_amount()` in
+`database/types.py`.
+
+Gate result: `make check` green — ruff clean, `mypy --strict` clean on 61 files, **201 tests
+pass** (177 → 201). Migration round-trips and `alembic check` reports no drift; label seeding
+still imports cleanly against the regenerated schema.
+
+**A real precision bug was found and fixed, and it mattered.** The stated gate was "amounts
+round-trip exactly". They did not. SQLite has no decimal type, so SQLAlchemy's `Numeric`
+routes through a C double there: `1234.567890123456789012` read back as
+`1234.567890123456891160` — wrong from the sixteenth decimal place on. `amount_raw` was
+exact, but `amount` is what a report renders, and this system's reports are meant to be
+evidentiary. Fixed with an `ExactDecimal` `TypeDecorator` that stores text on SQLite and
+native `NUMERIC` on PostgreSQL, so the dev fallback behaves like production rather than being
+quietly less trustworthy. Verified across one wei, an 18-significant-decimal value, a
+6-decimal USDT amount and a 20-digit magnitude.
+
+`format_amount()` was added alongside it: `Decimal("0.000000000000000001")` reprs as
+`1E-18`, which is correct but unreadable on an evidence table and easy to misread as a
+different magnitude. Every amount the API, the JSON report and the PDF render goes through it.
+
+Idempotency, which the fan-in/fan-out risk heuristics depend on:
+- re-ingesting a page inserts nothing and reports what it skipped;
+- duplicates *within* one batch are collapsed (a merged native+internal page repeats edges);
+- one hash moving two assets is two rows, correctly, while the same transfer twice is one;
+- a missing `log_index` is stored as `-1`, not NULL — NULLs never compare equal in a unique
+  constraint, so a provider that omits the field would otherwise re-insert forever;
+- `tx_count_observed` does not inflate on repeat ingestion. Double-counting there would
+  manufacture a fan-out risk indicator out of nothing but a repeated query.
+
+Snapshot pinning makes DPRD §15 reproducibility real: a pinned cache row is set
+`is_snapshot=true` with `expires_at=NULL` and survives eviction, so the provider responses
+behind a report cannot expire out from under it.
+
+Deviation: idempotency is "select existing keys, then insert the rest" rather than a
+dialect-specific `ON CONFLICT`. One extra query per batch (at most a few hundred rows) buys
+identical behaviour on PostgreSQL and SQLite — a dialect-specific path is the kind of bug
+that only appears in production.
+
+Note: the initial migration was **regenerated** rather than amended with a type-change
+migration, since no database is deployed yet and nothing depends on the old revision id.
 
 ### Phase 6 — Graph engine
 Build: `builder.py`, `traversal.py` (budgeted best-first BFS + a DFS variant for comparison),
