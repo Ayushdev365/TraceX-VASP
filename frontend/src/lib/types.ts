@@ -15,6 +15,8 @@ export type NodeRole = "subject" | "intermediate" | "vasp" | "risk_entity" | "co
 export type ScoreBand = "insufficient" | "low" | "moderate" | "strong" | "very_strong";
 export type Severity = "info" | "low" | "medium" | "high";
 export type DependencyStatus = "ok" | "not_configured" | "degraded" | "unavailable";
+export type Direction = "in" | "out";
+export type TraceDataMode = "auto" | "mock";
 
 export interface ApiError {
   error: {
@@ -56,4 +58,136 @@ export interface PublicConfig {
     risk: string;
     mock_sahyog: string;
   };
+}
+
+export interface TraceRequest {
+  address: string;
+  chain: Chain;
+  hop_depth: number;
+  direction: Direction;
+  data_mode: TraceDataMode;
+  case_ref?: string | null;
+}
+
+export interface TraceNodeResult {
+  address: string;
+  role: NodeRole;
+  hop_distance: number;
+  expanded: boolean;
+  not_expanded_reason: string | null;
+  matched_vasp_name: string | null;
+  matched_vasp_slug: string | null;
+  matched_risk_entity_kind: string | null;
+}
+
+export interface TraceEdgeResult {
+  from_address: string;
+  to_address: string;
+  tx_hash: string;
+  chain: Chain;
+  direction: Direction;
+  asset_symbol: string;
+  amount: string;
+  block_timestamp: string;
+  hop_index: number;
+}
+
+export interface ScoreBreakdown {
+  base_score: number;
+  hop_penalty: number;
+  tx_count_factor: number;
+  volume_factor: number;
+  final_score: number;
+  score_band: ScoreBand;
+  why_summary: string;
+  contributions: Record<string, number>;
+  risk_penalties: { kind: string; penalty: number }[];
+  penalty_total: number;
+}
+
+export interface ScoredCandidate {
+  vasp_name: string;
+  vasp_slug: string;
+  rank: number;
+  is_primary: boolean;
+  score: number;
+  score_band: ScoreBand;
+  min_hop_distance: number;
+  matched_addresses: string[];
+  interaction_tx_count: number;
+  interaction_value_usd: number | null;
+  score_breakdown: ScoreBreakdown;
+  evidence_paths: string[][];
+}
+
+export interface RiskIndicator {
+  kind: string;
+  severity: Severity;
+  detection_basis: string;
+  summary: string;
+  evidence_addresses: string[];
+  evidence_tx_hashes: string[];
+  penalty: number;
+  details: Record<string, string | number>;
+}
+
+export interface VaspCandidate {
+  address: string;
+  vasp_name: string;
+  vasp_slug: string;
+  hop_distance: number;
+  path: string[];
+}
+
+export interface TraceResult {
+  trace_id: string;
+  status: string;
+  queried_address: string;
+  canonical_address: string;
+  chain: Chain;
+  hop_depth: number;
+  direction: Direction;
+  data_provenance: DataProvenance;
+  data_mode: TraceDataMode;
+  case_ref: string | null;
+  truncated: boolean;
+  truncation_reason: string | null;
+  nodes_expanded: number;
+  api_calls_made: number;
+  tx_analyzed_count: number;
+  duration_ms: number | null;
+  discovered_addresses: string[];
+  nodes: TraceNodeResult[];
+  edges: TraceEdgeResult[];
+  paths: Record<string, string[]>;
+  vasp_candidates: VaspCandidate[];
+  attributions: ScoredCandidate[];
+  primary_attribution: ScoredCandidate | null;
+  no_attribution_reason: string | null;
+  risk_indicators: RiskIndicator[];
+  evidence_summary: string;
+  provenance_note: string;
+  score_type: "heuristic_investigative_score";
+  calibrated: false;
+}
+
+export interface DemoSubjectsResponse {
+  subjects: Partial<Record<Chain, Record<string, string>>>;
+}
+
+export interface TraceReport {
+  report_ref: string;
+  trace_id: string;
+  format: "json";
+  content_sha256: string;
+  payload: Record<string, unknown>;
+}
+
+export interface DisclosureDraft {
+  disclosure_ref: string;
+  trace_id: string;
+  mode: "mock_demo";
+  payload_schema_version: string;
+  banner: string;
+  payload: Record<string, unknown>;
 }

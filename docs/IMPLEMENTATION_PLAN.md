@@ -426,7 +426,7 @@ detection remain separate.
 Gate result: focused Phase 9 tests pass for every indicator family, clean-path non-detection,
 neutral copy, VASP/risk separation and score reduction from risk penalties.
 
-### Phase 10 — Frontend investigation workflow
+### Phase 10 — End-to-end trace investigation API · **DONE (2026-09-18)**
 Build: typed API client generated from the OpenAPI schema; intake form with client-side address
 validation and hop slider (1–6, default 3); loading state with stage labels; result page —
 header stats, `AttributionCard` + `ScoreGauge`, `WhyThisAttribution`, `ScoreBreakdownTable`,
@@ -435,6 +435,22 @@ cases list; `POST /traces/{id}/review`.
 Gate: full happy path in the browser against the real backend; no-attribution path renders the
 refusal panel, not an empty card; mock-data trace shows the DEMO banner; `tsc --noEmit` and
 eslint clean; every score in the UI is accompanied by the heuristic label.
+
+Backend scope completed first: `POST /traces` and `GET /traces/{trace_id}` now orchestrate
+address validation → chain adapter → graph traversal → VASP label matching → risk detection →
+attribution scoring → unified investigation result. Mock/offline mode is explicit via
+`data_mode: "mock"` and returns `mock_demo` provenance; live mode still requires configured
+provider keys and never silently falls back.
+
+Returned results include trace id, queried/canonical address, chain, discovered nodes/edges,
+paths, VASP candidates, scored attributions, primary/no-attribution outcome, risk indicators,
+evidence summary and provenance note. Results are held in an in-process store for this MVP API
+step; durable trace persistence remains a later integration task.
+
+Frontend demo update: a dependency-light dashboard now runs explicit mock investigations through
+the Phase 10 API, renders attribution/no-attribution outcomes, score breakdowns, risk indicators,
+provenance, compact graph and evidence table. This does not include durable case history or the
+full review/disclosure workflow.
 
 ### Phase 11 — Interactive graph + evidence
 Build: `TraceGraph.tsx` on Cytoscape.js (`cytoscape-dagre` layered layout so the

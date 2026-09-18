@@ -6,7 +6,16 @@
  * goes wrong mid-case.
  */
 
-import type { ApiError, HealthResponse, PublicConfig } from "@/lib/types";
+import type {
+  ApiError,
+  DemoSubjectsResponse,
+  DisclosureDraft,
+  HealthResponse,
+  PublicConfig,
+  TraceReport,
+  TraceRequest,
+  TraceResult,
+} from "@/lib/types";
 
 const PROXY_BASE = "/api/backend";
 
@@ -78,4 +87,30 @@ async function request<T>(
 export const api = {
   health: (signal?: AbortSignal) => request<HealthResponse>("/health", { signal }),
   config: (signal?: AbortSignal) => request<PublicConfig>("/meta/config", { signal }),
+  demoSubjects: (signal?: AbortSignal) =>
+    request<DemoSubjectsResponse>("/traces/demo-subjects", { signal }),
+  createTrace: (body: TraceRequest, signal?: AbortSignal) =>
+    request<TraceResult>("/traces", {
+      method: "POST",
+      body: JSON.stringify(body),
+      signal,
+    }),
+  getTrace: (traceId: string, signal?: AbortSignal) =>
+    request<TraceResult>(`/traces/${traceId}`, { signal }),
+  getReport: (traceId: string, signal?: AbortSignal) =>
+    request<TraceReport>(`/traces/${traceId}/report.json`, { signal }),
+  reviewTrace: (traceId: string, signal?: AbortSignal) =>
+    request<{ trace_id: string; decision: string; note: string | null }>(
+      `/traces/${traceId}/review`,
+      {
+        method: "POST",
+        body: JSON.stringify({ decision: "accepted", note: "Accepted in demo UI." }),
+        signal,
+      },
+    ),
+  createDisclosure: (traceId: string, signal?: AbortSignal) =>
+    request<DisclosureDraft>(`/traces/${traceId}/disclosure`, {
+      method: "POST",
+      signal,
+    }),
 };

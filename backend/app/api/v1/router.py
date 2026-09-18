@@ -8,16 +8,16 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.v1 import addresses, labels, meta, vasps
+from app.api.v1 import addresses, labels, meta, traces, vasps
 
 api_router = APIRouter()
 api_router.include_router(meta.router)
 api_router.include_router(addresses.router)
 api_router.include_router(vasps.router)
 api_router.include_router(labels.router)
+api_router.include_router(traces.router)
 
 # Registered in later phases:
-#   Phase 6  traces
 #   Phase 10 cases, review
 #   Phase 12 reports
 #   Phase 13 disclosure
