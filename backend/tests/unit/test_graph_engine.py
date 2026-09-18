@@ -473,3 +473,14 @@ def test_budget_can_expand_limits() -> None:
     budget.record_expand(2, 5)
     assert budget.can_expand() is False
     assert "node expansion limit" in (budget.exhausted_reason or "")
+
+
+def test_vasp_and_risk_label_remain_separate() -> None:
+    """A VASP label still produces a VASP node when a risk label also exists."""
+    label = LabelHit(
+        vasp_name="Overlap Exchange",
+        vasp_slug="overlap-exchange",
+        risk_entity_kind="sanctioned",
+    )
+
+    assert TraversalEngine._classify_role(label) == NodeRole.VASP

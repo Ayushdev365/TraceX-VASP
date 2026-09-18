@@ -13,9 +13,11 @@ class ScoreBreakdown(BaseModel):
     tx_count_factor: float = Field(..., description="Multiplier for transaction count/frequency")
     volume_factor: float = Field(..., description="Multiplier based on transaction volume")
     final_score: int = Field(..., description="Final calculated score (0-100)")
-    score_band: str = Field(..., description="insufficient, weak, moderate, strong, very_strong")
+    score_band: str = Field(..., description="insufficient, low, moderate, strong, very_strong")
     why_summary: str = Field(..., description="Human-readable explanation of the score")
     contributions: dict[str, float] = Field(default_factory=dict, description="Raw factor values")
+    risk_penalties: list[dict[str, float | str]] = Field(default_factory=list)
+    penalty_total: float = 0.0
 
 
 class ScoredCandidate(BaseModel):

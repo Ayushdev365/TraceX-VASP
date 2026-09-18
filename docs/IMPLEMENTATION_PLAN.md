@@ -393,7 +393,14 @@ Gate: unit tests per factor (monotonic in hop distance; saturating in tx count; 
 demo-unverified-only match returns `no_attribution` with `only_unverified_labels`; a golden-file
 test locks the breakdown JSON so scoring drift is caught (DPRD §35).
 
-### Phase 9 — Risk engine
+Phase 9 reconciliation: the implemented Phase 8 scorer intentionally remains lightweight, but
+the mismatched decision constants were corrected to the architecture-wide policy:
+`MIN_ATTRIBUTION_SCORE = 35` and score bands `35 low`, `55 moderate`, `70 strong`,
+`85 very_strong`. Path-strength and temporal-strength are not separate score factors yet; the
+current score still uses hop distance, transaction count and observed volume, while Phase 9
+adds path-scoped risk penalties and rapid-movement indicators without redesigning the scorer.
+
+### Phase 9 — Risk engine · **DONE (2026-09-18)**
 Build: `risk/engine.py` + indicators; labelled mixer/bridge/sanctions matching; fan-out/fan-in,
 rapid-movement, repeated-intermediary, uniform-splitting heuristics; penalty wiring into scoring;
 the neutral-wording disclaimer.
@@ -401,6 +408,23 @@ Gate: EXP-05 scaffold — every address in the known-mixer test list fires `mixe
 clean synthetic path fires none; penalty application demonstrably lowers the score;
 a copy-review test asserts no indicator string contains accusatory language ("criminal",
 "launderer", "guilty").
+
+Built: deterministic `backend/app/risk/` package with evidence-backed `RiskIndicator` outputs
+for labelled mixer interaction, bridge interaction, sanctioned/other risk-entity interaction,
+high fan-in, high fan-out, rapid movement and uniform-splitting-style unusual transaction
+patterns. Indicators consume the Phase 6 `TraversalResult` and the Phase 7 label-matching
+fields already attached to graph nodes; no labels or chain data are fabricated.
+
+Scoring integration: `score_candidates()` now accepts optional risk indicators and applies
+capped path-scoped penalties (`MAX_TOTAL_RISK_PENALTY = 0.50`) only when an indicator touches
+the candidate evidence path. Existing callers can still call `score_candidates(result)`.
+
+Targeted correction: a graph node with both a verified VASP label and a risk-entity label is
+classified as `VASP` while retaining `matched_risk_entity_kind`, so attribution and risk
+detection remain separate.
+
+Gate result: focused Phase 9 tests pass for every indicator family, clean-path non-detection,
+neutral copy, VASP/risk separation and score reduction from risk penalties.
 
 ### Phase 10 — Frontend investigation workflow
 Build: typed API client generated from the OpenAPI schema; intake form with client-side address

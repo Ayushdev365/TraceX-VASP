@@ -12,10 +12,16 @@ from app.attribution.config import (
 )
 from app.attribution.explain import generate_why_summary
 from app.graph.types import TraversalResult
+from app.risk.config import MAX_TOTAL_RISK_PENALTY
+from app.risk.engine import risk_penalty_for_path
+from app.risk.types import RiskIndicator
 from app.schemas.attribution import ScoreBreakdown, ScoredCandidate
 
 
-def score_candidates(result: TraversalResult) -> list[ScoredCandidate]:
+def score_candidates(
+    result: TraversalResult,
+    risk_indicators: list[RiskIndicator] | None = None,
+) -> list[ScoredCandidate]:
     """Score all candidate VASPs discovered in a traversal result.
 
     Returns a list of ScoredCandidate objects, sorted by rank (highest score first).
@@ -61,7 +67,17 @@ def score_candidates(result: TraversalResult) -> list[ScoredCandidate]:
             "volume": volume_factor * WEIGHTS["volume"] * BASE_SCORE,
         }
 
-        final_score = int(sum(contributions.values()))
+        base_score = sum(contributions.values())
+
+        best_path = min(agg.paths, key=len) if agg.paths else ()
+        risk_penalty, matching_indicators = risk_penalty_for_path(
+            risk_indicators or [],
+            best_path,
+            cap=MAX_TOTAL_RISK_PENALTY,
+        )
+        penalty_points = risk_penalty * BASE_SCORE
+
+        final_score = int(base_score - penalty_points)
         # Clamp to 0-100
         final_score = max(0, min(100, final_score))
 
@@ -77,6 +93,11 @@ def score_candidates(result: TraversalResult) -> list[ScoredCandidate]:
             score_band=score_band,
             why_summary="",  # Generated below
             contributions=contributions,
+            risk_penalties=[
+                {"kind": indicator.kind.value, "penalty": indicator.penalty}
+                for indicator in matching_indicators
+            ],
+            penalty_total=risk_penalty,
         )
 
         breakdown.why_summary = generate_why_summary(breakdown, agg.min_hop_distance, agg.vasp_name)

@@ -3,7 +3,7 @@
 SCORING_CONFIG_VERSION = "1.0.0"
 
 # Minimum score to be considered a primary attribution
-MIN_ATTRIBUTION_SCORE = 30
+MIN_ATTRIBUTION_SCORE = 35
 
 # Maximum possible score
 MAX_SCORE = 100
@@ -39,12 +39,12 @@ HOP_MULTIPLIERS = {
 
 def get_score_band(score: int) -> str:
     """Map a numeric score to a confidence band."""
-    if score >= 80:
+    if score >= 85:
         return "very_strong"
-    if score >= 60:
+    if score >= 70:
         return "strong"
-    if score >= 40:
+    if score >= 55:
         return "moderate"
-    if score >= 20:
-        return "weak"
+    if score >= 35:
+        return "low"
     return "insufficient"

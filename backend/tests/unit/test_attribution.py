@@ -5,8 +5,9 @@ from decimal import Decimal
 
 from app.attribution.scoring import score_candidates
 from app.graph.types import CandidateVasp, GraphEdge, GraphNode, TraversalResult
+from app.risk.types import DetectionBasis, RiskIndicator, RiskIndicatorKind
 from app.schemas.attribution import ScoredCandidate
-from app.schemas.common import Chain, DataProvenance, Direction, NodeRole
+from app.schemas.common import Chain, DataProvenance, Direction, NodeRole, Severity
 
 
 def _make_edge(from_addr: str, to_addr: str, amount: str, hop: int) -> GraphEdge:
@@ -113,8 +114,44 @@ def test_multi_hop_candidate_and_weak_evidence() -> None:
     # Volume = 100 / 300 = 0.33 -> min(1, 0.33/0.25)=1.0 -> 20
     # Total = 25 + 3 + 20 = 48
     assert c.score == 48
-    assert c.score_band == "moderate"
+    assert c.score_band == "low"
     assert c.is_primary is True
+
+
+def test_risk_penalty_lowers_score_without_reordering_inputs() -> None:
+    """Risk indicators lower the candidate score only when they touch its path."""
+    res = TraversalResult(
+        subject_address="sub",
+        chain=Chain.ETHEREUM,
+        hop_depth=2,
+        direction=Direction.OUT,
+        provenance=DataProvenance.MOCK_DEMO,
+    )
+    res.edges.append(_make_edge("sub", "risk", "100", 1))
+    res.edges.append(_make_edge("risk", "vasp1", "100", 2))
+    res.candidates.append(
+        CandidateVasp("vasp1", "Exchange A", "exch_a", 2, ("sub", "risk", "vasp1"))
+    )
+
+    baseline = score_candidates(res)[0]
+    penalized = score_candidates(
+        res,
+        [
+            RiskIndicator(
+                kind=RiskIndicatorKind.MIXER_INTERACTION,
+                severity=Severity.HIGH,
+                detection_basis=DetectionBasis.LABELLED_ADDRESS,
+                summary="Path touches an address labelled as a mixer service.",
+                evidence_addresses=("risk",),
+                evidence_tx_hashes=("tx_sub_risk_100",),
+                penalty=0.25,
+            )
+        ],
+    )[0]
+
+    assert penalized.score == baseline.score - 25
+    assert penalized.score_breakdown.penalty_total == 0.25
+    assert penalized.score_breakdown.risk_penalties[0]["kind"] == "mixer_interaction"
 
 
 def test_multiple_vasp_candidates_and_ordering() -> None:

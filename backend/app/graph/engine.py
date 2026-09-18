@@ -411,10 +411,10 @@ class TraversalEngine:
         if is_subject:
             return NodeRole.SUBJECT
         if label is not None:
-            if label.is_risk:
-                return NodeRole.RISK_ENTITY
             if label.is_vasp:
                 return NodeRole.VASP
+            if label.is_risk:
+                return NodeRole.RISK_ENTITY
         return NodeRole.INTERMEDIATE
 
     @staticmethod
