@@ -32,7 +32,7 @@ This matters more than any feature, and it is enforced in code rather than state
 
 ## Status
 
-Phase 2 of 16 complete — schema and labelled-dataset pipeline. See
+Phase 3 of 16 complete — Ethereum data adapter. See
 [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the full phase plan.
 
 | Phase | Scope | Status |
@@ -40,8 +40,9 @@ Phase 2 of 16 complete — schema and labelled-dataset pipeline. See
 | 0 | Architecture, data model, API contract, plan | Done |
 | 1 | Backend + frontend shells, config, logging, error envelope, health | Done |
 | 2 | PostgreSQL schema, VASP label import with provenance enforcement | Done |
-| 3 | Ethereum adapter | Next |
-| 4–5 | Tron adapter, transaction normalization | Planned |
+| 3 | Ethereum adapter, provider HTTP layer, address validation | Done |
+| 4 | Tron adapter | Next |
+| 5 | Transaction normalization + observation store | Planned |
 | 6–9 | Graph traversal, VASP matching, attribution scoring, risk engine | Planned |
 | 10–13 | Investigator workflow, interactive graph, reports, mock SAHYOG | Planned |
 | 14–16 | ML experiment, testing/security, deployment | Planned |
@@ -136,9 +137,16 @@ server-side. No variable holding a secret is prefixed `NEXT_PUBLIC_`, and
 `app/core/logging.py` redacts configured secret values and key-bearing query parameters from
 every log line.
 
-Without provider keys the chain adapters run in mock mode. Mock results are labelled
-`data_provenance: mock_demo` end to end and banner-flagged in the UI and on the PDF — mock
-data is never presented as real blockchain data.
+Without `ETHERSCAN_API_KEY` the Ethereum adapter refuses to run and says exactly why
+(`PROVIDER_NOT_CONFIGURED`, naming the missing setting) rather than silently substituting
+demo data — "no key" and "provider down" need different fixes. A clearly-labelled mock
+provider arrives in Phase 4; when it does, its results carry `data_provenance: mock_demo`
+end to end and are banner-flagged in the UI and on the PDF. Mock data is never presented as
+real blockchain data.
+
+Every provider read is cached in `api_response_cache` with the API key stripped. A cache hit
+reports `data_provenance: cached`, so a demo served from a warm cache is never described as a
+fresh live pull.
 
 ---
 

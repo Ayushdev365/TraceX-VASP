@@ -223,20 +223,56 @@ concretely:
   `TypeDecorator`, batch mode only on SQLite), but **the Supabase apply is untested** until
   `DATABASE_URL` arrives.
 
-### Phase 3 — Ethereum adapter
-Note: `addresses.py` already landed in Phase 2 (the importer needed it), so this phase is
-smaller than originally scoped.
-Build: `base.py` contract; `http.py` (httpx async, tenacity retries,
-exponential backoff, token-bucket per provider, timeouts); `cache.py`; `ethereum.py` over an
-Etherscan-compatible v2 API — normal txs, internal txs, ERC-20 transfers, pagination, cursors;
-`normalize_transaction()` → `NormalizedTx`; `POST /addresses/validate`.
-Gate: EXP-01-style test — adapter transaction count and key fields match the block explorer for
-a fixed set of test addresses (recorded fixtures via VCR-style cassettes so CI is offline);
-checksum-mismatch and wrong-chain cases return the documented codes; a forced 429 from the
-provider produces a clean `503 UPSTREAM_RATE_LIMITED`, not a stack trace.
+### Phase 3 — Ethereum adapter · **DONE (2026-09-18)**
+Built: `base.py` (`ChainAdapter` protocol, `NormalizedTx`, `Page`, `FetchStats`); `http.py`
+(shared provider client: token-bucket rate limiting, retries with backoff, timeouts,
+upsert caching into `api_response_cache`, key sanitisation); `ethereum.py` over the
+Etherscan-compatible V2 API covering `txlist`, `txlistinternal` and `tokentx`;
+`registry.py` with `ProviderNotConfigured` distinct from `ChainNotSupported`;
+`POST /addresses/validate`.
+
+Gate result: `make check` green — ruff clean, `mypy --strict` clean on 56 files, **143 tests
+pass** (95 → 143). Every provider call is mocked with respx, so the suite is offline and
+needs no API key or quota. Verified:
+- native, internal and ERC-20 records all normalise into one schema, with 6-decimal USDT
+  handled correctly (reading it as 18 decimals would understate the amount a trillion-fold);
+- hashes and contract addresses are canonicalised, so provider casing cannot defeat matching;
+- Etherscan's "No transactions found" (an HTTP 200 with `status: "0"`) is an empty result,
+  not a failure — treating it as an error would turn a quiet wallet into a broken trace;
+- a rate-limit rejection arriving as an HTTP 200 body surfaces as `UpstreamRateLimited`;
+- 429 and 5xx retry three times then surface cleanly; a transient 5xx followed by success
+  recovers; an error's message and details never contain the API key;
+- the 10 000-record provider cap sets `complete=false` with a reason, rather than stopping
+  silently — which would look identical to "no VASP exists" (DPRD §17);
+- an invalid address is rejected before any request, so no quota is spent;
+- a cache hit reports `provenance: cached` and costs zero API calls, so a warm-cache demo is
+  never presented as a fresh live pull.
+
+Two real bugs were found and fixed in the caching layer, both of which would only have
+appeared on the SQLite dev fallback or under `force_refresh` — easy to miss until demo day:
+- SQLite has no timezone type, so `expires_at` read back naive and comparing it to an aware
+  `now()` raised `TypeError`, disabling caching entirely on the fallback.
+- `force_refresh` inserted a second row for an existing `cache_key`, violating the unique
+  constraint mid-trace. Writes are now an upsert, and a row pinned as a trace snapshot keeps
+  its non-expiring status.
+
+Deviations from the original Phase 3 scope, all deliberate:
+- **No `MockAdapter` yet.** It was scoped for Phase 4, and `registry.py` now raises
+  `ProviderNotConfigured` naming `ETHERSCAN_API_KEY` rather than silently substituting demo
+  data. "No key" and "provider down" need different fixes, so they are different errors.
+- **Internal transfers included in `get_wallet_transactions`.** Not in the original wording,
+  but omitting them loses real fund flow: a wallet can reach an exchange entirely through a
+  contract call and the trace would show nothing.
+- **`sort=desc` (newest first).** A trace trimmed by a budget then keeps the most recent
+  activity, which is what an investigator following live funds needs.
+
+**Untested against the live API (Q3 unanswered).** Every test runs against recorded
+responses. The adapter has never made a real Etherscan call, so EXP-01 — comparing adapter
+output to the reference explorer for 20+ wallets — cannot run until `ETHERSCAN_API_KEY`
+exists. The response shapes are implemented from Etherscan's documented V2 contract.
 
 ### Phase 4 — Tron adapter
-Build: `tron.py` over TronGrid/TronScan — TRX transfers, TRC-20 transfers (USDT priority per
+Build: `tron.py` over TronGrid/TronScan (reusing `http.py` unchanged) — TRX transfers, TRC-20 transfers (USDT priority per
 DPRD §11), Tron's `sun` decimals, base58check ↔ hex(41) handling, its own pagination and
 fingerprint cursors; register in `registry.py`; `mock.py` MockAdapter for both chains with
 labelled demo fixtures.
