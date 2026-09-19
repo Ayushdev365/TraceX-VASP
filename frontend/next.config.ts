@@ -1,5 +1,3 @@
-import path from "node:path";
-
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -7,7 +5,7 @@ const nextConfig: NextConfig = {
   // pick up an unrelated lockfile from the home directory, which makes builds depend on
   // whatever else happens to be on the machine.
   turbopack: {
-    root: path.join(import.meta.dirname, ".."),
+    root: import.meta.dirname,
   },
 
   // No image optimization is needed: the dashboard renders graphs and text, not photography.
