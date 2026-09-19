@@ -84,6 +84,18 @@ async function request<T>(
   return payload as T;
 }
 
+async function requestBlob(path: string, signal?: AbortSignal): Promise<Blob> {
+  const response = await fetch(`${PROXY_BASE}${path}`, { signal });
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null);
+    if (isApiError(payload)) {
+      throw new ApiRequestError(payload.error.message, { code: payload.error.code, status: response.status, requestId: payload.error.request_id, details: payload.error.details });
+    }
+    throw new ApiRequestError("The report could not be downloaded.", { code: "UNKNOWN_ERROR", status: response.status });
+  }
+  return response.blob();
+}
+
 export const api = {
   health: (signal?: AbortSignal) => request<HealthResponse>("/health", { signal }),
   config: (signal?: AbortSignal) => request<PublicConfig>("/meta/config", { signal }),
@@ -100,7 +112,7 @@ export const api = {
   getReport: (traceId: string, signal?: AbortSignal) =>
     request<TraceReport>(`/traces/${traceId}/report.json`, { signal }),
   getPdfReport: (traceId: string, signal?: AbortSignal) =>
-    fetch(`${PROXY_BASE}/traces/${traceId}/report.pdf`, { signal }),
+    requestBlob(`/traces/${traceId}/report.pdf`, signal),
   reviewTrace: (traceId: string, signal?: AbortSignal) =>
     request<{ trace_id: string; decision: string; note: string | null }>(
       `/traces/${traceId}/review`,
