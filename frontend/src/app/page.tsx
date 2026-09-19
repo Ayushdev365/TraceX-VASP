@@ -15,14 +15,7 @@ export default function InvestigationDashboard() {
 
   return (
     <div className="mx-auto max-w-[1600px]"><div className="mb-8 flex items-end justify-between gap-5"><div><div className="text-xs font-semibold uppercase tracking-[.24em] text-vt-accent">Blockchain intelligence</div><h1 className="mt-3 text-4xl font-semibold tracking-[-.04em] md:text-6xl">Investigate. <span className="bg-gradient-to-r from-blue-600 via-indigo-500 to-pink-500 bg-clip-text text-transparent">Trace. Attribute.</span></h1><p className="mt-4 max-w-2xl text-base text-vt-text-muted">Turn blockchain data into actionable intelligence. Identify VASP connections, analyze risk, and generate explainable evidence trails.</p></div></div>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.22em] text-vt-accent"><span className="size-1.5 rounded-full bg-vt-accent shadow-[0_0_12px_var(--color-vt-accent)]" /> Command center</div>
-          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Blockchain investigations</h1>
-          <p className="mt-1 max-w-2xl text-sm text-vt-text-muted">Trace wallet activity, identify connected entities and preserve an explainable evidence trail.</p>
-        </div>
-        <div className="flex items-center gap-2 rounded-full border border-vt-border bg-vt-surface px-3 py-2 text-xs text-vt-text-muted"><span className="size-2 rounded-full bg-vt-ok" /> Workspace ready <span className="text-vt-text-faint">/</span> analyst mode</div>
-      </div>
+      <div className="mb-6 flex justify-end"><div className="flex items-center gap-2 rounded-full border border-vt-border bg-vt-surface px-3 py-2 text-xs text-vt-text-muted"><span className="size-2 rounded-full bg-vt-ok" /> Workspace ready <span className="text-vt-text-faint">/</span> analyst mode</div></div>
       <div className="grid gap-6 xl:grid-cols-[minmax(20rem,25rem)_minmax(0,1fr)]">
         <aside className="flex flex-col gap-4">
           <TraceForm onResult={setResult} onError={setError} loading={loading} setLoading={setLoading} />
