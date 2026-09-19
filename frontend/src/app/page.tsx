@@ -14,7 +14,7 @@ export default function InvestigationDashboard() {
   const [loading, setLoading] = useState(false);
 
   return (
-    <div className="mx-auto max-w-[1600px]">
+    <div className="mx-auto max-w-[1600px]"><div className="mb-8 flex items-end justify-between gap-5"><div><div className="text-xs font-semibold uppercase tracking-[.24em] text-vt-accent">Blockchain intelligence</div><h1 className="mt-3 text-4xl font-semibold tracking-[-.04em] md:text-6xl">Investigate. <span className="bg-gradient-to-r from-blue-600 via-indigo-500 to-pink-500 bg-clip-text text-transparent">Trace. Attribute.</span></h1><p className="mt-4 max-w-2xl text-base text-vt-text-muted">Turn blockchain data into actionable intelligence. Identify VASP connections, analyze risk, and generate explainable evidence trails.</p></div></div>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.22em] text-vt-accent"><span className="size-1.5 rounded-full bg-vt-accent shadow-[0_0_12px_var(--color-vt-accent)]" /> Command center</div>

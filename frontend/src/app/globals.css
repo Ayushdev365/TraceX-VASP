@@ -1,78 +1,40 @@
 @import "tailwindcss";
 
-/*
- * VASPTrace design tokens.
- *
- * A dark, low-chroma investigation console: the graph, the score and the risk chips are the
- * only things that should carry strong colour, so the surface palette stays neutral.
- * Semantic colours are named by meaning (`vt-risk-high`), not by hue, so the score bands and
- * risk severities cannot drift apart between components.
- */
-
 @theme {
-  /* surfaces */
-  --color-vt-bg: #0b1120;
-  --color-vt-surface: #111a2e;
-  --color-vt-surface-raised: #17223a;
-  --color-vt-border: #243049;
-  --color-vt-border-strong: #33415c;
-
-  /* text */
-  --color-vt-text: #e8edf7;
-  --color-vt-text-muted: #93a2bf;
-  --color-vt-text-faint: #64748b;
-
-  /* brand / accent */
-  --color-vt-accent: #38bdf8;
-  --color-vt-accent-strong: #0ea5e9;
-
-  /* node roles (graph + legends) */
-  --color-vt-subject: #f59e0b;
-  --color-vt-intermediate: #64748b;
-  --color-vt-vasp: #22c55e;
-  --color-vt-risk-entity: #f43f5e;
-
-  /* score bands — deliberately not a red/green "verdict" ramp */
-  --color-vt-band-insufficient: #64748b;
-  --color-vt-band-low: #94a3b8;
-  --color-vt-band-moderate: #38bdf8;
-  --color-vt-band-strong: #34d399;
-  --color-vt-band-very-strong: #22c55e;
-
-  /* risk severities */
-  --color-vt-risk-info: #60a5fa;
-  --color-vt-risk-low: #fbbf24;
-  --color-vt-risk-medium: #fb923c;
-  --color-vt-risk-high: #f43f5e;
-
-  /* status */
-  --color-vt-ok: #22c55e;
-  --color-vt-warn: #fbbf24;
-  --color-vt-error: #f43f5e;
-
-  --font-mono:
-    var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --color-vt-bg: #f4f7ff;
+  --color-vt-surface: rgba(255,255,255,.62);
+  --color-vt-surface-raised: rgba(255,255,255,.86);
+  --color-vt-border: rgba(125,145,190,.22);
+  --color-vt-border-strong: rgba(77,105,170,.32);
+  --color-vt-text: #12204b;
+  --color-vt-text-muted: #53658e;
+  --color-vt-text-faint: #8795b3;
+  --color-vt-accent: #2563eb;
+  --color-vt-accent-strong: #4f46e5;
+  --color-vt-subject: #2563eb;
+  --color-vt-intermediate: #94a3b8;
+  --color-vt-vasp: #10b981;
+  --color-vt-risk-entity: #ef4444;
+  --color-vt-band-insufficient: #94a3b8;
+  --color-vt-band-low: #64748b;
+  --color-vt-band-moderate: #2563eb;
+  --color-vt-band-strong: #10b981;
+  --color-vt-band-very-strong: #059669;
+  --color-vt-risk-info: #3b82f6;
+  --color-vt-risk-low: #f59e0b;
+  --color-vt-risk-medium: #f97316;
+  --color-vt-risk-high: #ef4444;
+  --color-vt-ok: #10b981;
+  --color-vt-warn: #f59e0b;
+  --color-vt-error: #ef4444;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
-
-html,
-body {
-  background-color: var(--color-vt-bg);
-  color: var(--color-vt-text);
-}
-
-/* Addresses and hashes are compared character by character by investigators — always mono,
-   and never subject to ligatures that could merge two glyphs. */
-.vt-mono {
-  font-family: var(--font-mono);
-  font-variant-ligatures: none;
-  letter-spacing: -0.01em;
-}
-
-::selection {
-  background-color: color-mix(in srgb, var(--color-vt-accent) 35%, transparent);
-}
-
-*:focus-visible {
-  outline: 2px solid var(--color-vt-accent);
-  outline-offset: 2px;
-}
+html, body { background: radial-gradient(circle at 75% 0%, #e4eaff 0, transparent 38%), #f4f7ff; color: var(--color-vt-text); }
+body { background-attachment: fixed; }
+.vt-mono { font-family: var(--font-mono); font-variant-ligatures: none; }
+.glass { background: var(--color-vt-surface); border: 1px solid var(--color-vt-border); box-shadow: 0 18px 50px rgba(81,102,163,.10), inset 0 1px rgba(255,255,255,.8); backdrop-filter: blur(24px); }
+::selection { background: #c7d2fe; }
+*:focus-visible { outline: 2px solid var(--color-vt-accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) { .glass { transition: box-shadow .2s ease, transform .2s ease; } .glass:hover { box-shadow: 0 22px 60px rgba(81,102,163,.15), inset 0 1px rgba(255,255,255,.9); } }
+@media (max-width: 900px) { .sidebar-desktop { display:none; } }
+@media (max-width: 640px) { .main-content { padding: 1rem; } }
