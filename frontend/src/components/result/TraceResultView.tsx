@@ -1,221 +1,31 @@
 "use client";
 
 import { useState } from "react";
-
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { api } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
-import type { TraceResult } from "@/lib/types";
+import type { TraceEdgeResult, TraceNodeResult, TraceResult } from "@/lib/types";
 
-const bandTone = {
-  insufficient: "muted",
-  low: "neutral",
-  moderate: "accent",
-  strong: "ok",
-  very_strong: "ok",
-} as const;
-
-const roleColor = {
-  subject: "bg-vt-subject",
-  intermediate: "bg-vt-intermediate",
-  vasp: "bg-vt-vasp",
-  risk_entity: "bg-vt-risk-entity",
-  contract: "bg-vt-text-faint",
-} as const;
+const roleColor = { subject: "#f59e0b", intermediate: "#64748b", vasp: "#22c55e", risk_entity: "#f43f5e", contract: "#94a3b8" } as const;
+const bandTone = { insufficient: "muted", low: "neutral", moderate: "accent", strong: "ok", very_strong: "ok" } as const;
 
 export function TraceResultView({ result }: { result: TraceResult }) {
-  const primary = result.primary_attribution;
+  const [selected, setSelected] = useState<TraceNodeResult | TraceEdgeResult | null>(null);
   const [actionMessage, setActionMessage] = useState("");
-  async function exportReport() {
-    const report = await api.getReport(result.trace_id);
-    setActionMessage(`JSON report ${report.report_ref} ready, sha256 ${report.content_sha256.slice(0, 12)}...`);
-  }
-  async function draftDisclosure() {
-    await api.reviewTrace(result.trace_id);
-    const disclosure = await api.createDisclosure(result.trace_id);
-    setActionMessage(`${disclosure.disclosure_ref}: ${disclosure.banner}`);
-  }
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader
-          title="Investigation result"
-          action={
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" className="px-3 py-1.5 text-xs" onClick={exportReport}>
-                JSON report
-              </Button>
-              <Button type="button" variant="secondary" className="px-3 py-1.5 text-xs" onClick={draftDisclosure}>
-                Mock disclosure
-              </Button>
-              <Badge tone={result.data_provenance === "mock_demo" ? "warn" : "ok"}>{result.data_provenance}</Badge>
-            </div>
-          }
-        />
-        <CardBody className="grid gap-4 md:grid-cols-4">
-          <Metric label="Trace ID" value={result.trace_id.slice(0, 8)} mono />
-          <Metric label="Addresses" value={String(result.discovered_addresses.length)} />
-          <Metric label="Transactions" value={String(result.edges.length)} />
-          <Metric label="Risk indicators" value={String(result.risk_indicators.length)} />
-          <div className="md:col-span-4 text-sm text-vt-text-muted">{result.evidence_summary}</div>
-          <div className="md:col-span-4 text-xs text-vt-warn">{result.provenance_note}</div>
-          {actionMessage ? <div className="md:col-span-4 text-xs text-vt-accent">{actionMessage}</div> : null}
-        </CardBody>
-      </Card>
-
-      {primary ? <AttributionCard candidate={primary} /> : <NoAttribution reason={result.no_attribution_reason} />}
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(22rem,0.8fr)]">
-        <TraceGraph result={result} />
-        <RiskPanel result={result} />
-      </div>
-
-      <EvidenceTable result={result} />
-    </div>
-  );
+  const [busy, setBusy] = useState(false);
+  async function exportReport() { setBusy(true); try { const report = await api.getReport(result.trace_id); setActionMessage(`JSON report ${report.report_ref} ready · ${report.content_sha256.slice(0, 12)}…`); } catch (error) { setActionMessage(error instanceof Error ? error.message : "Report failed."); } finally { setBusy(false); } }
+  async function draftDisclosure() { setBusy(true); try { await api.reviewTrace(result.trace_id); const disclosure = await api.createDisclosure(result.trace_id); setActionMessage(`${disclosure.disclosure_ref} · ${disclosure.banner}`); } catch (error) { setActionMessage(error instanceof Error ? error.message : "Disclosure failed."); } finally { setBusy(false); } }
+  return <div className="flex flex-col gap-5"><Card className="overflow-hidden"><div className="h-1 bg-gradient-to-r from-vt-accent via-vt-vasp to-vt-risk-high" /><CardBody className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex items-center gap-2"><span className="size-2 rounded-full bg-vt-ok" /><span className="text-xs font-semibold uppercase tracking-[0.2em] text-vt-text-muted">Investigation complete</span><Badge tone={result.data_provenance === "mock_demo" ? "warn" : "ok"}>{result.data_provenance}</Badge></div><h2 className="mt-3 text-xl font-semibold">{result.case_ref || "Unassigned case"}</h2><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-vt-text-muted"><span className="vt-mono">{short(result.canonical_address, 12, 8)}</span><span className="uppercase">{result.chain}</span><span>Trace depth {result.hop_depth}</span></div></div><div className="flex flex-wrap gap-2"><Button variant="secondary" className="px-3 py-2 text-xs" disabled={busy} onClick={exportReport}>Export JSON</Button><Button variant="secondary" className="px-3 py-2 text-xs" disabled={busy} onClick={draftDisclosure}>Draft disclosure</Button></div></CardBody>{actionMessage ? <div className="border-t border-vt-border bg-vt-accent/5 px-5 py-3 text-xs text-vt-accent">{actionMessage}</div> : null}</Card>
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">{[["Nodes discovered", result.nodes.length], ["Transactions", result.tx_analyzed_count], ["Addresses", result.discovered_addresses.length], ["VASP matches", result.attributions.length], ["Risk signals", result.risk_indicators.length]].map(([label, value]) => <div key={String(label)} className="rounded-xl border border-vt-border bg-vt-surface px-4 py-4"><div className="text-2xl font-semibold tracking-tight">{value}</div><div className="mt-1 text-[10px] uppercase tracking-wider text-vt-text-faint">{label}</div></div>)}</div>
+    {result.primary_attribution ? <Card><CardHeader title="Primary attribution" subtitle="Heuristic investigative score — not a calibrated probability." action={<Badge tone={bandTone[result.primary_attribution.score_band]}>{result.primary_attribution.score_band}</Badge>} /><CardBody className="flex flex-wrap items-center gap-6"><div className="grid size-24 place-items-center rounded-full border-8 border-vt-accent/25 bg-vt-accent/5"><span className="text-2xl font-bold text-vt-accent">{result.primary_attribution.score}</span></div><div className="min-w-0 flex-1"><div className="text-lg font-semibold">{result.primary_attribution.vasp_name}</div><p className="mt-1 text-sm text-vt-text-muted">{result.primary_attribution.score_breakdown.why_summary}</p><div className="mt-3 flex flex-wrap gap-2 text-[11px] text-vt-text-faint"><span>{result.primary_attribution.interaction_tx_count} interaction(s)</span><span>·</span><span>{result.primary_attribution.min_hop_distance} hop distance</span><span>·</span><span>{result.primary_attribution.matched_addresses.length} matched address(es)</span></div></div></CardBody></Card> : <Card><CardBody><div className="text-sm font-semibold">No reliable VASP attribution found</div><p className="mt-2 text-sm text-vt-text-muted">{result.no_attribution_reason ?? "The trace is inconclusive."}</p></CardBody></Card>}
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.65fr)]"><TraceGraph result={result} selected={selected} onSelect={setSelected} /><div className="flex flex-col gap-5"><RiskPanel result={result} /><SelectionPanel selection={selected} /></div></div>
+    <EvidenceTable result={result} /></div>;
 }
 
-function Metric({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div>
-      <div className="text-xs text-vt-text-faint">{label}</div>
-      <div className={cn("mt-1 text-sm font-semibold", mono && "vt-mono")}>{value}</div>
-    </div>
-  );
-}
-
-function AttributionCard({ candidate }: { candidate: TraceResult["primary_attribution"] & {} }) {
-  const contributionEntries = Object.entries(candidate.score_breakdown.contributions);
-  return (
-    <Card>
-      <CardHeader
-        title="Primary VASP attribution"
-        action={<Badge tone={bandTone[candidate.score_band]}>{candidate.score_band}</Badge>}
-      />
-      <CardBody className="grid gap-5 lg:grid-cols-[10rem_minmax(0,1fr)]">
-        <div className="grid size-32 place-items-center rounded-full border-8 border-vt-accent/30 bg-vt-surface-raised">
-          <span className="text-3xl font-bold">{candidate.score}</span>
-        </div>
-        <div className="space-y-3">
-          <h3 className="text-xl font-semibold">{candidate.vasp_name}</h3>
-          <p className="text-sm text-vt-text-muted">{candidate.score_breakdown.why_summary}</p>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {contributionEntries.map(([name, value]) => (
-              <Metric key={name} label={name.replace("_", " ")} value={value.toFixed(1)} />
-            ))}
-          </div>
-        </div>
-      </CardBody>
-    </Card>
-  );
-}
-
-function NoAttribution({ reason }: { reason: string | null }) {
-  return (
-    <Card>
-      <CardHeader title="No reliable VASP attribution found" />
-      <CardBody className="text-sm text-vt-text-muted">
-        The trace completed without a primary attribution. Reason:{" "}
-        <span className="vt-mono text-vt-text">{reason ?? "inconclusive"}</span>
-      </CardBody>
-    </Card>
-  );
-}
-
-function TraceGraph({ result }: { result: TraceResult }) {
-  const nodes = result.nodes.slice(0, 24);
-  const width = 720;
-  const height = 360;
-  const positions = new Map(
-    nodes.map((node, index) => {
-      const sameHop = nodes.filter((item) => item.hop_distance === node.hop_distance);
-      const row = sameHop.findIndex((item) => item.address === node.address);
-      return [
-        node.address,
-        {
-          x: 80 + node.hop_distance * 150,
-          y: 60 + row * 70 + (index % 2) * 8,
-        },
-      ];
-    }),
-  );
-  return (
-    <Card>
-      <CardHeader title="Transaction graph" />
-      <CardBody>
-        <svg viewBox={`0 0 ${width} ${height}`} className="h-80 w-full rounded bg-vt-bg">
-          {result.edges.map((edge) => {
-            const a = positions.get(edge.from_address);
-            const b = positions.get(edge.to_address);
-            if (!a || !b) return null;
-            return <line key={edge.tx_hash} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#33415c" strokeWidth="2" />;
-          })}
-          {nodes.map((node) => {
-            const p = positions.get(node.address);
-            if (!p) return null;
-            return (
-              <g key={node.address}>
-                <circle cx={p.x} cy={p.y} r="13" className={roleColor[node.role]} />
-                <text x={p.x + 18} y={p.y + 4} fill="#e8edf7" fontSize="11">
-                  {node.role === "vasp" ? node.matched_vasp_name : `${node.address.slice(0, 8)}...`}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-      </CardBody>
-    </Card>
-  );
-}
-
-function RiskPanel({ result }: { result: TraceResult }) {
-  return (
-    <Card>
-      <CardHeader title="Risk indicators" />
-      <CardBody className="space-y-3">
-        {result.risk_indicators.length === 0 ? (
-          <p className="text-sm text-vt-text-muted">No risk indicators fired on this trace.</p>
-        ) : (
-          result.risk_indicators.map((item) => (
-            <div key={`${item.kind}-${item.evidence_addresses.join("-")}`} className="rounded border border-vt-border bg-vt-bg p-3">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-semibold">{item.kind.replaceAll("_", " ")}</span>
-                <Badge tone={item.severity === "high" ? "error" : item.severity === "medium" ? "warn" : "neutral"}>{item.severity}</Badge>
-              </div>
-              <p className="mt-2 text-xs text-vt-text-muted">{item.summary}</p>
-            </div>
-          ))
-        )}
-      </CardBody>
-    </Card>
-  );
-}
-
-function EvidenceTable({ result }: { result: TraceResult }) {
-  return (
-    <Card>
-      <CardHeader title="Evidence" subtitle="Observed transaction edges returned by the trace." />
-      <CardBody className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-left text-xs">
-          <thead className="text-vt-text-faint">
-            <tr><th className="py-2">Hop</th><th>From</th><th>To</th><th>Asset</th><th>Amount</th><th>Tx</th></tr>
-          </thead>
-          <tbody>
-            {result.edges.slice(0, 30).map((edge) => (
-              <tr key={edge.tx_hash} className="border-t border-vt-border">
-                <td className="py-2">{edge.hop_index}</td>
-                <td className="vt-mono">{edge.from_address.slice(0, 12)}...</td>
-                <td className="vt-mono">{edge.to_address.slice(0, 12)}...</td>
-                <td>{edge.asset_symbol}</td>
-                <td className="vt-mono">{edge.amount}</td>
-                <td className="vt-mono">{edge.tx_hash.slice(0, 14)}...</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </CardBody>
-    </Card>
-  );
-}
+function TraceGraph({ result, selected, onSelect }: { result: TraceResult; selected: TraceNodeResult | TraceEdgeResult | null; onSelect: (item: TraceNodeResult | TraceEdgeResult) => void }) { const nodes = result.nodes.slice(0, 32); const positions = new Map(nodes.map((node, index) => [node.address, { x: 75 + Math.min(node.hop_distance, 4) * 145, y: 42 + (index % 5) * 62 + Math.floor(index / 5) * 4 }])); return <Card className="overflow-hidden"><CardHeader title="Transaction graph" subtitle="Select a node or edge to inspect intelligence." action={<span className="text-[10px] text-vt-text-faint">{result.nodes.length} nodes · {result.edges.length} edges</span>} /><CardBody className="p-3"><div className="mb-3 flex flex-wrap gap-3 px-2 text-[10px] text-vt-text-muted">{Object.entries(roleColor).map(([role, color]) => <span key={role} className="flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ backgroundColor: color }} />{role.replace("_", " ")}</span>)}</div><svg viewBox="0 0 720 350" className="h-[350px] w-full rounded-lg border border-vt-border bg-[#080d18]" role="img" aria-label="Interactive transaction graph">{result.edges.map((edge) => { const a = positions.get(edge.from_address); const b = positions.get(edge.to_address); if (!a || !b) return null; return <line key={edge.tx_hash} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={selected === edge ? "#38bdf8" : "#263650"} strokeWidth={selected === edge ? 3 : 1.5} strokeDasharray="5 4" onClick={() => onSelect(edge)} className="cursor-pointer" />; })}{nodes.map((node) => { const p = positions.get(node.address); if (!p) return null; const active = selected === node; return <g key={node.address} onClick={() => onSelect(node)} className="cursor-pointer"><circle cx={p.x} cy={p.y} r={active ? 17 : 12} fill={roleColor[node.role]} fillOpacity={active ? 0.3 : 0.18} stroke={roleColor[node.role]} strokeWidth={active ? 3 : 1.5} /><circle cx={p.x} cy={p.y} r="4" fill={roleColor[node.role]} /><text x={p.x + 20} y={p.y + 4} fill="#c7d2e6" fontSize="10">{node.role === "vasp" ? node.matched_vasp_name : short(node.address, 6, 4)}</text></g>; })}</svg></CardBody></Card>; }
+function RiskPanel({ result }: { result: TraceResult }) { return <Card><CardHeader title="Risk intelligence" action={<Badge tone={result.risk_indicators.length ? "warn" : "ok"}>{result.risk_indicators.length ? `${result.risk_indicators.length} signals` : "clear"}</Badge>} /><CardBody className="flex flex-col gap-3">{result.risk_indicators.length ? result.risk_indicators.map((item) => <div key={`${item.kind}-${item.penalty}`} className="rounded-lg border border-vt-border bg-vt-bg/60 p-3"><div className="flex items-center justify-between gap-3"><span className="text-xs font-semibold">{item.kind.replaceAll("_", " ")}</span><Badge tone={item.severity === "high" ? "error" : item.severity === "medium" ? "warn" : "neutral"}>{item.severity}</Badge></div><p className="mt-2 text-xs leading-5 text-vt-text-muted">{item.summary}</p></div>) : <p className="text-sm text-vt-text-muted">No risk indicators fired on this trace.</p>}</CardBody></Card>; }
+function SelectionPanel({ selection }: { selection: TraceNodeResult | TraceEdgeResult | null }) { return <Card className={cn("transition-opacity", !selection && "opacity-70")}><CardHeader title="Intelligence panel" /><CardBody>{!selection ? <p className="text-sm text-vt-text-muted">Select a graph node or transaction edge to inspect its evidence.</p> : "role" in selection ? <div className="flex flex-col gap-3 text-xs"><div className="vt-mono break-all text-vt-accent">{selection.address}</div><div className="flex justify-between border-t border-vt-border pt-3"><span className="text-vt-text-faint">Node role</span><span>{selection.role}</span></div><div className="flex justify-between"><span className="text-vt-text-faint">Hop distance</span><span>{selection.hop_distance}</span></div><div className="flex justify-between"><span className="text-vt-text-faint">VASP match</span><span>{selection.matched_vasp_name ?? "None"}</span></div>{selection.matched_risk_entity_kind ? <div className="flex justify-between text-vt-error"><span>Risk entity</span><span>{selection.matched_risk_entity_kind}</span></div> : null}</div> : <div className="flex flex-col gap-3 text-xs"><div className="vt-mono break-all text-vt-accent">{selection.tx_hash}</div><div className="flex justify-between border-t border-vt-border pt-3"><span className="text-vt-text-faint">Asset / amount</span><span>{selection.asset_symbol} {selection.amount}</span></div><div className="flex justify-between"><span className="text-vt-text-faint">Hop</span><span>{selection.hop_index}</span></div><div className="vt-mono text-[10px] text-vt-text-faint">{selection.block_timestamp}</div></div>}</CardBody></Card>; }
+function EvidenceTable({ result }: { result: TraceResult }) { return <Card><CardHeader title="Evidence explorer" subtitle="Observed transaction edges returned by the trace." /><CardBody className="overflow-x-auto"><table className="w-full min-w-[700px] text-left text-xs"><thead className="text-[10px] uppercase tracking-wider text-vt-text-faint"><tr><th className="pb-3">Hop</th><th>From</th><th>To</th><th>Asset</th><th>Amount</th><th>Transaction</th></tr></thead><tbody>{result.edges.slice(0, 30).map((edge) => <tr key={edge.tx_hash} className="border-t border-vt-border text-vt-text-muted hover:bg-vt-accent/5"><td className="py-3 text-vt-accent">{edge.hop_index}</td><td className="vt-mono">{short(edge.from_address, 10, 5)}</td><td className="vt-mono">{short(edge.to_address, 10, 5)}</td><td>{edge.asset_symbol}</td><td className="vt-mono">{edge.amount}</td><td className="vt-mono">{short(edge.tx_hash, 12, 6)}</td></tr>)}</tbody></table></CardBody></Card>; }
+function short(value: string, start = 8, end = 6) { return value.length > start + end + 1 ? `${value.slice(0, start)}…${value.slice(-end)}` : value; }

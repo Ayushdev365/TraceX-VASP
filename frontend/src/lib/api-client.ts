@@ -99,6 +99,8 @@ export const api = {
     request<TraceResult>(`/traces/${traceId}`, { signal }),
   getReport: (traceId: string, signal?: AbortSignal) =>
     request<TraceReport>(`/traces/${traceId}/report.json`, { signal }),
+  getPdfReport: (traceId: string, signal?: AbortSignal) =>
+    fetch(`${PROXY_BASE}/traces/${traceId}/report.pdf`, { signal }),
   reviewTrace: (traceId: string, signal?: AbortSignal) =>
     request<{ trace_id: string; decision: string; note: string | null }>(
       `/traces/${traceId}/review`,

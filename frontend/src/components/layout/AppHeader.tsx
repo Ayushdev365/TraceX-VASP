@@ -1,30 +1,5 @@
 import Link from "next/link";
-
 import { BackendStatus } from "@/components/layout/BackendStatus";
 import { APP_NAME, PROBLEM_STATEMENT_ID, TEAM_NAME } from "@/lib/constants";
 
-export function AppHeader() {
-  return (
-    <header className="flex items-center justify-between gap-4 border-b border-vt-border bg-vt-surface px-4 py-3 md:px-6">
-      <div className="flex items-center gap-3">
-        <Link href="/" className="flex items-center gap-3">
-          <span
-            aria-hidden
-            className="grid size-9 place-items-center rounded-lg bg-vt-accent/15 text-sm font-bold text-vt-accent"
-          >
-            VT
-          </span>
-          <span>
-            <span className="block text-base font-semibold leading-tight text-vt-text">
-              {APP_NAME}
-            </span>
-            <span className="block text-xs leading-tight text-vt-text-faint">
-              VASP Attribution Engine · Team {TEAM_NAME} · {PROBLEM_STATEMENT_ID}
-            </span>
-          </span>
-        </Link>
-      </div>
-      <BackendStatus />
-    </header>
-  );
-}
+export function AppHeader() { return <header className="flex min-h-[68px] items-center justify-between gap-4 border-b border-vt-border bg-vt-surface/80 px-4 backdrop-blur md:px-6"><Link href="/" className="flex items-center gap-3"><span aria-hidden className="relative grid size-9 place-items-center rounded-lg border border-vt-accent/40 bg-vt-accent/10 text-xs font-bold tracking-tight text-vt-accent shadow-[0_0_24px_rgba(56,189,248,0.12)]"><span className="absolute inset-1 rounded border border-vt-accent/20" />TX</span><span><span className="block text-sm font-semibold tracking-wide">{APP_NAME}<span className="text-vt-accent">.</span></span><span className="block text-[10px] uppercase tracking-[0.12em] text-vt-text-faint">Intelligence platform · {TEAM_NAME} · {PROBLEM_STATEMENT_ID}</span></span></Link><div className="flex items-center gap-4"><div className="hidden sm:block"><BackendStatus /></div><button type="button" aria-label="Notifications" className="grid size-8 place-items-center rounded-lg border border-vt-border text-sm text-vt-text-muted hover:border-vt-accent/50">◌</button><div className="grid size-8 place-items-center rounded-full border border-vt-border bg-vt-surface-raised text-xs font-semibold text-vt-accent" aria-label="Analyst profile">AR</div></div></header>; }
